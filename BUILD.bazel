@@ -1,0 +1,39 @@
+COPTS = [
+    "-O0",
+    "-std=c++23",
+    "-Wall",
+    "-Wextra",
+    "-pedantic",
+    "-pedantic-errors",
+]
+
+DEFINES = [
+    "_GLIBCXX_DEBUG",
+]
+
+cc_binary(
+    name = "cache_warm",
+    srcs = ["cache_warm.cpp"],
+    copts = COPTS,
+    linkopts = ["-lpmemobj"],
+    local_defines = DEFINES,
+    deps = [
+        ":Instrumenter",
+    ],
+)
+
+cc_binary(
+    name = "call_once",
+    srcs = ["call_once.cpp"],
+    copts = COPTS,
+    local_defines = DEFINES,
+    deps = [],
+)
+
+cc_library(
+    name = "Instrumenter",
+    srcs = ["Instrumenter.cpp"],
+    hdrs = ["Instrumenter.h"],
+    copts = COPTS,
+    local_defines = DEFINES,
+)

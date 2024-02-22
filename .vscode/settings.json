@@ -1,0 +1,12 @@
+{
+    "editor.formatOnSave": true,
+    "cSpell.ignoreWords": [
+        "Instrumenter",
+        "Timepoint",
+        "daxfs",
+        "persist_kvfile",
+        "pmemkv",
+        "vcmap",
+        "vsmap"
+    ]
+}

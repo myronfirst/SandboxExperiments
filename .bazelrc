@@ -1,0 +1,19 @@
+common --enable_bzlmod
+test --test_output=all
+build --compilation_mode=dbg
+build --action_env=CC=/bin/g++-11
+
+#gprof
+# build --compilation_mode=dbg --copt="-pg" --copt="-finstrument-functions" --linkopt="-pg"
+
+#vtune
+# build --compilation_mode=opt --copt="-g"
+
+# Do not build runfile forests by default. If an execution strategy relies on runfile
+# forests, the forest is created on-demand. See: https://github.com/bazelbuild/bazel/issues/6627
+# and https://github.com/bazelbuild/bazel/commit/03246077f948f2790a83520e7dccc2625650e6df
+# Note: This also works around an issue where Bazel does not support spaces in runfiles. The
+# Chromium app files for Darwin contain files with spaces and this would break. For darwin though,
+# the sandbox strategy is used anyway and runfile forests are not needed.
+# Related Bazel bug: https://github.com/bazelbuild/bazel/issues/4327.
+build --nobuild_runfile_links

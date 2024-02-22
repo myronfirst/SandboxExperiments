@@ -1,0 +1,4 @@
+"""
+This module contains build rules for my project.
+"""
+module(name = "experiment-sandbox", version = "1.0")
