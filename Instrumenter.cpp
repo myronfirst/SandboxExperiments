@@ -61,7 +61,7 @@ namespace {
         return os;
     }
 
-    auto SaveAsJSON(const std::string& fileName, const std::vector<Trace>& traceVec) -> void {
+    [[maybe_unused]] auto SaveAsJSON(const std::string& fileName, const std::vector<Trace>& traceVec) -> void {
         std::ofstream f{ fileName + ".json" };
         f << "{\n"
           << std::quoted("displayTimeUnit") << ": " << std::quoted(TypeName<Timer::Unit>::GetSuffix()) << ",\n"
@@ -76,7 +76,7 @@ namespace {
           << "}\n";
     }
     const auto Header = "experiments, " + std::string{ TypeName<Timer::Unit>::GetName() };
-    auto SaveAsCSV(const std::string& fileName, const std::vector<Trace>& traceVec) -> void {
+    [[maybe_unused]] auto SaveAsCSV(const std::string& fileName, const std::vector<Trace>& traceVec) -> void {
         std::ofstream f{ fileName + ".csv" };
         f << Header << '\n';
         for (const auto& trace : traceVec) {
