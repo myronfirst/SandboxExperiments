@@ -4,9 +4,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build cache_warm",
+            "label": "build cache_warm debug",
             "type": "shell",
-            "command": "bazel build //:cache_warm",
+            "command": "bazel build //:cache_warm --config=debug",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -14,9 +14,19 @@
             }
         },
         {
-            "label": "build call_once",
+            "label": "build cache_warm release",
             "type": "shell",
-            "command": "bazel build //:call_once",
+            "command": "bazel build //:cache_warm --config=release",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "build call_once debug",
+            "type": "shell",
+            "command": "bazel build //:call_once --config-debug",
             "problemMatcher": [],
             "group": {
                 "kind": "build",

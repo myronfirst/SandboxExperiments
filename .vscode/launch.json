@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Plot",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "plot.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "cache_warm",
             "type": "cppdbg",
             "request": "launch",
