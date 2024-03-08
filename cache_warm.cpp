@@ -27,8 +27,12 @@
 /* ---Config--- */
 constexpr uint64_t POOL_SIZE = PMEMOBJ_MIN_POOL * 64;
 constexpr auto TraceFileName = "./Traces";
-// constexpr uint64_t CACHE_SIZE = (1024 * 1024) * 4;    // 32MB pc-myron L3 35MB
-constexpr uint64_t CACHE_SIZE = (1024 * 1024) * 4.66;    // 37.28MB titan L3+L2+L1D ~37.3MB
+constexpr uint64_t L1 = (1024) * 48;                   // 48KB titan L1 Data
+constexpr uint64_t L2 = (1024 * 1024 * 0.125) * 1;     // 1MB titan L2
+constexpr uint64_t L3 = (1024 * 1024 * 0.125) * 36;    // 36MB titan L3
+// constexpr uint64_t CACHE_SIZE = (1024 * 1024) * 4.66;             // 37.28MB titan L3+L2+L1D ~37.3MB
+constexpr uint64_t CACHE_SIZE = (1024 * 1024 * 0.125) * 37.28;    // 37.28MB titan L3+L2+L1D ~37.3MB
+constexpr uint64_t PERSISTENT_ARR_LEN = 2 * CACHE_SIZE;
 // Allocate only for L3, not for L1+L2+L3, since whatever exists in L3 also exists on L1 and L2
 //  constexpr uint64_t CACHE_SIZE = (1024 * 1024) * 1;       // 8MB mamalakispc L3 8MB
 constexpr uint64_t REPETITIONS = 30;
@@ -44,21 +48,21 @@ constexpr uint64_t REPETITIONS = 30;
 constexpr auto PoolPath = MOUNT_DIR POOL_PATH_REL;
 constexpr const char* PoolLayout = "pool";
 struct RootType {
-    pmem::obj::persistent_ptr<uint64_t[CACHE_SIZE]> arrayPersistent;
+    pmem::obj::persistent_ptr<uint64_t[PERSISTENT_ARR_LEN]> arrayPersistent;
 };
 pmem::obj::pool<RootType> Pool{};
 pmem::obj::persistent_ptr<RootType> RootPtr{};
 /* --- */
 
 /* ---Volatile--- */
-constexpr size_t DOUBLE_CACHE_SIZE = 2 * CACHE_SIZE;
-using CoolingBufferType = std::array<uint64_t, DOUBLE_CACHE_SIZE>;
+constexpr size_t DOUBLE_PERSISTENT_ARR_LEN = 2 * PERSISTENT_ARR_LEN;
+using CoolingBufferType = std::array<uint64_t, DOUBLE_PERSISTENT_ARR_LEN>;
 auto CoolingBuffer = std::make_unique<CoolingBufferType>();
 volatile uint64_t ReadDestination{};
 /* --- */
 
 namespace {
-    auto PrintPersistence(size_t limit = CACHE_SIZE) -> void {
+    auto PrintPersistence(size_t limit = PERSISTENT_ARR_LEN) -> void {
         std::cout << "Persistence:";
         if (RootPtr->arrayPersistent)
             for (auto i = 0ul; i < limit; ++i)
@@ -67,13 +71,13 @@ namespace {
     }
 
     [[maybe_unused]] auto PersistArrayAndExit() -> void {
-        auto buffer = std::make_unique<std::array<uint64_t, CACHE_SIZE>>();
+        auto buffer = std::make_unique<std::array<uint64_t, PERSISTENT_ARR_LEN>>();
         std::iota(buffer->begin(), buffer->end(), 0);
         pmem::obj::transaction::run(Pool, [&buffer] {
             if (RootPtr->arrayPersistent)
-                pmem::obj::delete_persistent<uint64_t[]>(RootPtr->arrayPersistent, CACHE_SIZE);
-            RootPtr->arrayPersistent = pmem::obj::make_persistent<uint64_t[CACHE_SIZE]>();
-            for (auto i = 0ul; i < CACHE_SIZE; ++i)
+                pmem::obj::delete_persistent<uint64_t[]>(RootPtr->arrayPersistent, PERSISTENT_ARR_LEN);
+            RootPtr->arrayPersistent = pmem::obj::make_persistent<uint64_t[PERSISTENT_ARR_LEN]>();
+            for (auto i = 0ul; i < PERSISTENT_ARR_LEN; ++i)
                 RootPtr->arrayPersistent[i] = buffer->at(i);
         });
         PrintPersistence(30);
@@ -105,6 +109,7 @@ class ExperimentDataType {
 private:
     std::string name;
     size_t repetitions;
+    size_t size;
     std::function<void()> wrapperCallback;
     std::function<void()> prepareCallback;
     std::function<void()> benchmarkCallback;
@@ -129,11 +134,13 @@ private:
 public:
     ExperimentDataType(const std::string& _name,
                        size_t _repetitions,
+                       size_t _size,
                        const std::string& wrapperCallbackStr,
                        const std::string& prepareCallbackStr,
                        const std::string& benchmarkCallbackStr)
         : name{ _name },
           repetitions{ _repetitions },
+          size{ _size },
           wrapperCallback{ PickCallback(wrapperCallbackStr) },
           prepareCallback{ PickCallback(prepareCallbackStr) },
           benchmarkCallback{ PickCallback(benchmarkCallbackStr) } {}
@@ -184,7 +191,7 @@ public:
     }
 
     auto WarmCachePrepare() const -> void {
-        for (auto i = 0ul; i < CACHE_SIZE; ++i)
+        for (auto i = 0ul; i < size; ++i)
             ReadDestination = RootPtr->arrayPersistent[i];
     }
     auto CoolCachePrepare() const -> void {
@@ -195,11 +202,11 @@ public:
         CoolingBuffer->fill(1);
         std::random_device r;
         std::default_random_engine e(r());
-        std::uniform_int_distribution<size_t> uniform_dist(0, DOUBLE_CACHE_SIZE - 1);
+        std::uniform_int_distribution<size_t> uniform_dist(0, DOUBLE_PERSISTENT_ARR_LEN - 1);
         for (auto i = 0ul; i < CoolingBuffer->size(); ++i) CoolingBuffer->at(i) = uniform_dist(e);
-        auto coolingBufferIndexes = std::make_unique<std::array<size_t, DOUBLE_CACHE_SIZE>>();
-        for (auto begin = std::begin(*coolingBufferIndexes); begin < std::end(*coolingBufferIndexes); begin += DOUBLE_CACHE_SIZE)
-            std::iota(begin, begin + DOUBLE_CACHE_SIZE, 0);
+        auto coolingBufferIndexes = std::make_unique<std::array<size_t, DOUBLE_PERSISTENT_ARR_LEN>>();
+        for (auto begin = std::begin(*coolingBufferIndexes); begin < std::end(*coolingBufferIndexes); begin += DOUBLE_PERSISTENT_ARR_LEN)
+            std::iota(begin, begin + DOUBLE_PERSISTENT_ARR_LEN, 0);
         std::ranges::shuffle(*coolingBufferIndexes, e);
         for (auto i = 0ul; i < coolingBufferIndexes->size(); ++i) {
             const auto idx = coolingBufferIndexes->at(i);
@@ -221,12 +228,12 @@ public:
 
     auto ReadBench() const -> void {
         TIME_SCOPE(name);
-        for (auto i = 0ul; i < CACHE_SIZE; ++i)
+        for (auto i = 0ul; i < size; ++i)
             ReadDestination = RootPtr->arrayPersistent[i];
     }
     auto WriteBench() const -> void {
         TIME_SCOPE(name);
-        for (auto i = 0ul; i < CACHE_SIZE; ++i)
+        for (auto i = 0ul; i < size; ++i)
             RootPtr->arrayPersistent[i] = i;
         RootPtr->arrayPersistent.persist();
     }
@@ -234,8 +241,10 @@ public:
 
 auto ReadExperiments() -> void {
     {
-        ExperimentDataType{ "Main_Read", REPETITIONS, "NoWrapper", "", "ReadBench" }.Execute();
-        ExperimentDataType{ "Main_Invalidate_Read", REPETITIONS, "NoWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
+        for (const auto& [size, suffix] : std::vector<std::tuple<size_t, std::string>>{ {L1, "L1"}, {L2, "L2"}, {L3, "L3"}, {CACHE_SIZE, "CACHE_SIZE"} })
+            ExperimentDataType{ "Main_Read"+suffix, REPETITIONS, size, "NoWrapper", "", "ReadBench" }.Execute();
+        for (const auto& size : { L1, L2, L3, CACHE_SIZE })
+            ExperimentDataType{ "Main_Invalidate_Read", REPETITIONS, size, "NoWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
         // ExperimentDataType{ "Main_Invalidate_Warm_Read", REPETITIONS, "NoWrapper", "InvalidateWarmCachePrepare", "ReadBench" }.Execute();
     }
     {    // 1 Rep, restart executable with repeat_execution.sh
@@ -243,8 +252,10 @@ auto ReadExperiments() -> void {
          // ExperimentDataType{ "Main_Terminate_Invalidate_Read", 1, "NoWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
     }
     {
-        ExperimentDataType{ "Thread_Read", REPETITIONS, "ThreadWrapper", "", "ReadBench" }.Execute();
-        ExperimentDataType{ "Thread_Invalidate_Read", REPETITIONS, "ThreadWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
+        for (const auto& size : { L1, L2, L3, CACHE_SIZE })
+            ExperimentDataType{ "Thread_Read", REPETITIONS, size, "ThreadWrapper", "", "ReadBench" }.Execute();
+        for (const auto& size : { L1, L2, L3, CACHE_SIZE })
+            ExperimentDataType{ "Thread_Invalidate_Read", REPETITIONS, size, "ThreadWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
         // ExperimentDataType{ "Thread_Invalidate_Warm_Read", REPETITIONS, "ThreadWrapper", "InvalidateWarmCachePrepare", "ReadBench" }.Execute();
 
         // ExperimentDataType{ "Thread_Cool_Read", REPETITIONS, "ThreadWrapper", "CoolCachePrepare", "ReadBench" }.Execute();
@@ -269,7 +280,8 @@ auto ReadExperiments() -> void {
 }
 auto WriteExperiments() -> void {
     {
-        ExperimentDataType{ "Main_Write", REPETITIONS, "NoWrapper", "", "WriteBench" }.Execute();
+        for (const auto& size : { L1, L2, L3, CACHE_SIZE })
+            ExperimentDataType{ "Main_Write", REPETITIONS, size, "NoWrapper", "", "WriteBench" }.Execute();
         // ExperimentDataType{ "Main_Invalidate_Write", REPETITIONS, "NoWrapper", "InvalidateCachePrepare", "WriteBench" }.Execute();
     }
     {    // 1 Rep, restart executable with repeat_execution.sh

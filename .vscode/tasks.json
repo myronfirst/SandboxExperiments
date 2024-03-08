@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build cache_warm debug",
+            "label": "build_cache_warm_debug",
             "type": "shell",
             "command": "bazel build //:cache_warm --config=debug",
             "problemMatcher": [],
@@ -14,7 +14,7 @@
             }
         },
         {
-            "label": "build cache_warm release",
+            "label": "build_cache_warm_release",
             "type": "shell",
             "command": "bazel build //:cache_warm --config=release",
             "problemMatcher": [],
@@ -24,7 +24,7 @@
             }
         },
         {
-            "label": "build call_once debug",
+            "label": "build_call_once_debug",
             "type": "shell",
             "command": "bazel build //:call_once --config-debug",
             "problemMatcher": [],

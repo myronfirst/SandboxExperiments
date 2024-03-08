@@ -34,7 +34,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build cache_warm"
+            "preLaunchTask": "build_cache_warm_debug"
         },
         {
             "name": "call_once",
@@ -59,7 +59,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build call_once"
+            "preLaunchTask": "build_call_once_debug"
         }
     ]
 }

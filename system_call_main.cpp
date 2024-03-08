@@ -26,8 +26,12 @@
 /* ---Config--- */
 constexpr uint64_t POOL_SIZE = PMEMOBJ_MIN_POOL * 64;
 constexpr auto TraceFileName = "./Traces";
-// constexpr uint64_t CACHE_SIZE = (1024 * 1024) * 4;    // 32MB pc-myron L3 35MB
-constexpr uint64_t CACHE_SIZE = (1024 * 1024) * 4.66;    // 37.28MB titan L3+L2+L1D ~37.3MB
+constexpr uint64_t L1 = (1024) * 48;                   // 48KB titan L1 Data
+constexpr uint64_t L2 = (1024 * 1024 * 0.125) * 1;     // 1MB titan L2
+constexpr uint64_t L3 = (1024 * 1024 * 0.125) * 36;    // 36MB titan L3
+// constexpr uint64_t CACHE_SIZE = (1024 * 1024) * 4.66;             // 37.28MB titan L3+L2+L1D ~37.3MB
+constexpr uint64_t CACHE_SIZE = (1024 * 1024 * 0.125) * 37.28;    // 37.28MB titan L3+L2+L1D ~37.3MB
+constexpr uint64_t PERSISTENT_ARR_LEN = 2 * CACHE_SIZE;
 // Allocate only for L3, not for L1+L2+L3, since whatever exists in L3 also exists on L1 and L2
 //  constexpr uint64_t CACHE_SIZE = (1024 * 1024) * 1;       // 8MB mamalakispc L3 8MB
 /* --- */
@@ -38,15 +42,15 @@ constexpr uint64_t CACHE_SIZE = (1024 * 1024) * 4.66;    // 37.28MB titan L3+L2+
 constexpr auto PoolPath = MOUNT_DIR POOL_PATH_REL;
 constexpr const char* PoolLayout = "pool";
 struct RootType {
-    pmem::obj::persistent_ptr<uint64_t[CACHE_SIZE]> arrayPersistent;
+    pmem::obj::persistent_ptr<uint64_t[PERSISTENT_ARR_LEN]> arrayPersistent;
 };
 pmem::obj::pool<RootType> Pool{};
 pmem::obj::persistent_ptr<RootType> RootPtr{};
 /* --- */
 
 /* ---Volatile--- */
-constexpr size_t DOUBLE_CACHE_SIZE = 2 * CACHE_SIZE;
-using CoolingBufferType = std::array<uint64_t, DOUBLE_CACHE_SIZE>;
+constexpr size_t DOUBLE_PERSISTENT_ARR_LEN = 2 * PERSISTENT_ARR_LEN;
+using CoolingBufferType = std::array<uint64_t, DOUBLE_PERSISTENT_ARR_LEN>;
 auto CoolingBuffer = std::make_unique<CoolingBufferType>();
 volatile uint64_t ReadDestination{};
 /* --- */
@@ -71,14 +75,14 @@ namespace {
             }
         }
     }
-    [[maybe_unused]] auto ReadBench() -> void {
+    [[maybe_unused]] auto ReadBench(size_t size) -> void {
         TIME_SCOPE("System_Call_Read");
-        for (auto i = 0ul; i < CACHE_SIZE; ++i)
+        for (auto i = 0ul; i < size; ++i)
             ReadDestination = RootPtr->arrayPersistent[i];
     }
-    [[maybe_unused]] auto WriteBench() -> void {
+    [[maybe_unused]] auto WriteBench(size_t size) -> void {
         TIME_SCOPE("System_Call_Write");
-        for (auto i = 0ul; i < CACHE_SIZE; ++i)
+        for (auto i = 0ul; i < size; ++i)
             RootPtr->arrayPersistent[i] = i;
         RootPtr->arrayPersistent.persist();
     }
@@ -100,8 +104,10 @@ auto main() -> int {
         PinThisThreadToCore(0);
         INSTRUMENT_BEGIN_SESSION(TraceFileName);
         {
-            ReadBench();
-            // WriteBench();
+            for (const auto& size : { L1, L2, L3, CACHE_SIZE })
+                ReadBench(size);
+            // for (const auto& size : { L1, L2, L3, CACHE_SIZE })
+            // WriteBench(size);
         }
         INSTRUMENT_END_SESSION();
 
