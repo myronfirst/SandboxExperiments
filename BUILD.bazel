@@ -1,22 +1,31 @@
 COPTS = [
-    "-O0",
-    "-std=c++23",
     "-Wall",
     "-Wextra",
     "-pedantic",
     "-pedantic-errors",
 ]
 
-DEFINES = [
-    "_GLIBCXX_DEBUG",
+LINKOPTS = [
+    "-lpmemobj",
+    "-pthread",
 ]
 
 cc_binary(
     name = "cache_warm",
     srcs = ["cache_warm.cpp"],
     copts = COPTS,
-    linkopts = ["-lpmemobj"],
-    local_defines = DEFINES,
+    linkopts = LINKOPTS,
+    deps = [
+        ":Instrumenter",
+        ":system_call_main",
+    ],
+)
+
+cc_binary(
+    name = "system_call_main",
+    srcs = ["system_call_main.cpp"],
+    copts = COPTS,
+    linkopts = LINKOPTS,
     deps = [
         ":Instrumenter",
     ],
@@ -26,7 +35,6 @@ cc_binary(
     name = "call_once",
     srcs = ["call_once.cpp"],
     copts = COPTS,
-    local_defines = DEFINES,
     deps = [],
 )
 
@@ -35,5 +43,4 @@ cc_library(
     srcs = ["Instrumenter.cpp"],
     hdrs = ["Instrumenter.h"],
     copts = COPTS,
-    local_defines = DEFINES,
 )

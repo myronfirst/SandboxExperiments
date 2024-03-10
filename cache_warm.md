@@ -22,15 +22,39 @@ On process based experiments we observe almost half the runtime, including the l
 - `fork() Copy-On-Write` mechanism kicks in after we access the persistence domain. The mechanism copies the volatile memory array from the parent process memory domain to the child and then performs the write of the persistent block to the copy.
 - We warm our caches, bringing us performance
 
-## Thread, Fork, WBINVD experiments
+# Workflow
 - Initialize data in persistency
-- Config REPETITIONS, CACHE_SIZE
+- Config REPETITIONS, WORKLOAD_SIZE
 - Pick Experiment in main
-- Intrumenter callbacks: PrefixCSV, AppendCSV
+- Instrumenter callbacks: AppendCSV
+- Clear Traces.csv after trial runs
+- `.bazelrc` build optimized
 
-## Main Thread (Mallis) experiment
-- Initialize data in persistency
-- Config CACHE_SIZE
-- Pick Experiment in main, with 1 repetition
-- Config REPETITIONS in .sh script
-- Intrumenter callbacks: PrefixCSVIfEmpty, AppendCSV
+## Main
+- NoWrapper
+## Main Invalidate
+- NoWrapper, InvalidateCachePrepare
+## Main Terminate
+- NoWrapper
+- 1 rep, use sh file
+## Main Terminate Invalidate
+- NoWrapper, InvalidateCachePrepare
+- 1 rep, use sh file
+
+## Thread
+- ThreadWrapper
+## Thread Invalidate
+- ThreadWrapper, InvalidateCachePrepare
+## Thread Terminate
+- ThreadWrapper
+- 1 rep, use sh file
+## Thread Terminate Invalidate
+- ThreadWrapper, InvalidateCachePrepare
+- 1 rep, use sh file
+
+## System Call
+- SystemCallWrapper
+- system_call_main.cpp manages parameters other than REPETITIONS
+
+## Fork
+- ForkWrapper
