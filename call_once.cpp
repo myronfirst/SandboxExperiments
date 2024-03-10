@@ -20,7 +20,7 @@ namespace {
         }                                                             \
     }
 
-    using Clock = std::chrono::high_resolution_clock;
+    using Clock = std::chrono::steady_clock;
     using Timepoint = std::chrono::time_point<Clock>;
 
     auto PinToCore(int core) -> void {

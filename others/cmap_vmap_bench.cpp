@@ -95,15 +95,15 @@ KVOperations VolatileKv{ VolatileDirPath, "vcmap" };
 
 class TimeIt {
 public:
-    TimeIt(std::string _id) : id{ std::move(_id) }, begin{ std::chrono::high_resolution_clock::now() } {}
+    TimeIt(std::string _id) : id{ std::move(_id) }, begin{ std::chrono::steady_clock::now() } {}
     ~TimeIt() {
-        const auto end = std::chrono::high_resolution_clock::now();
+        const auto end = std::chrono::steady_clock::now();
         std::cout << id << ": " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms\n";
     }
 
 private:
     std::string id{};
-    std::chrono::time_point<std::chrono::high_resolution_clock> begin{};
+    std::chrono::time_point<std::chrono::steady_clock> begin{};
 
 public:
     TimeIt(const TimeIt&) = delete;
