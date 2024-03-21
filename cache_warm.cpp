@@ -241,17 +241,17 @@ public:
 
 auto ReadExperiments() -> void {
     {
-        for (const auto& [size, suffix] : std::vector<std::tuple<size_t, std::string>>{ {L1, "L1"}, {L2, "L2"}, {L3, "L3"}, {CACHE_SIZE, "CACHE_SIZE"} })
-            ExperimentDataType{ "Main_Read"+suffix, REPETITIONS, size, "NoWrapper", "", "ReadBench" }.Execute();
+        for (const auto& [size, suffix] : std::vector<std::tuple<size_t, std::string>>{ { L1, "L1" }, { L2, "L2" }, { L3, "L3" }, { CACHE_SIZE, "CACHE_SIZE" } })
+            ExperimentDataType{ "Main_Read" + suffix, REPETITIONS, size, "NoWrapper", "", "ReadBench" }.Execute();
         for (const auto& size : { L1, L2, L3, CACHE_SIZE })
             ExperimentDataType{ "Main_Invalidate_Read", REPETITIONS, size, "NoWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
         // ExperimentDataType{ "Main_Invalidate_Warm_Read", REPETITIONS, "NoWrapper", "InvalidateWarmCachePrepare", "ReadBench" }.Execute();
     }
-    {    // 1 Rep, restart executable with repeat_execution.sh
-         // ExperimentDataType{ "Main_Terminate_Read", 1, "NoWrapper", "", "ReadBench" }.Execute();
-         // ExperimentDataType{ "Main_Terminate_Invalidate_Read", 1, "NoWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
-    }
     {
+        // 1 Rep, restart executable with repeat_execution.sh
+        // ExperimentDataType{ "Main_Terminate_Read", 1, "NoWrapper", "", "ReadBench" }.Execute();
+        // ExperimentDataType{ "Main_Terminate_Invalidate_Read", 1, "NoWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
+    } {
         for (const auto& size : { L1, L2, L3, CACHE_SIZE })
             ExperimentDataType{ "Thread_Read", REPETITIONS, size, "ThreadWrapper", "", "ReadBench" }.Execute();
         for (const auto& size : { L1, L2, L3, CACHE_SIZE })
@@ -261,15 +261,15 @@ auto ReadExperiments() -> void {
         // ExperimentDataType{ "Thread_Cool_Read", REPETITIONS, "ThreadWrapper", "CoolCachePrepare", "ReadBench" }.Execute();
         // ExperimentDataType{ "Thread_ComplexCool_Read", REPETITIONS, "ThreadWrapper", "ComplexCoolCachePrepare", "ReadBench" }.Execute();
     }
-    {    // 1 Rep, restart executable with repeat_execution.sh
-         // ExperimentDataType{ "Thread_Terminate_Read", 1, "ThreadWrapper", "", "ReadBench" }.Execute();
-         // ExperimentDataType{ "Thread_Terminate_Invalidate_Read", 1, "ThreadWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
-    }
-    {    // System Call experiment, system_call_main.cpp manages parameters other than REPETITIONS
-         // ExperimentDataType{ "System_Call_Read", REPETITIONS, "SystemCallWrapper", "", "" }.Execute();
-         // ExperimentDataType{ "System_Call_Invalidate_Read", REPETITIONS, "SystemCallWrapper", "InvalidateCachePrepare", "" }.Execute();
-    }
     {
+        // 1 Rep, restart executable with repeat_execution.sh
+        // ExperimentDataType{ "Thread_Terminate_Read", 1, "ThreadWrapper", "", "ReadBench" }.Execute();
+        // ExperimentDataType{ "Thread_Terminate_Invalidate_Read", 1, "ThreadWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
+    } {
+        // System Call experiment, system_call_main.cpp manages parameters other than REPETITIONS
+        // ExperimentDataType{ "System_Call_Read", REPETITIONS, "SystemCallWrapper", "", "" }.Execute();
+        // ExperimentDataType{ "System_Call_Invalidate_Read", REPETITIONS, "SystemCallWrapper", "InvalidateCachePrepare", "" }.Execute();
+    } {
         // ExperimentDataType{ "Fork_Read", REPETITIONS, "ForkWrapper", "", "ReadBench" }.Execute();
         // ExperimentDataType{ "Fork_Invalidate_Read", REPETITIONS, "ForkWrapper", "InvalidateCachePrepare", "ReadBench" }.Execute();
 
@@ -284,23 +284,22 @@ auto WriteExperiments() -> void {
             ExperimentDataType{ "Main_Write", REPETITIONS, size, "NoWrapper", "", "WriteBench" }.Execute();
         // ExperimentDataType{ "Main_Invalidate_Write", REPETITIONS, "NoWrapper", "InvalidateCachePrepare", "WriteBench" }.Execute();
     }
-    {    // 1 Rep, restart executable with repeat_execution.sh
-         // ExperimentDataType{ "Main_Terminate_Write", 1, "NoWrapper", "", "WriteBench" }.Execute();
-         // ExperimentDataType{ "Main_Terminate_Invalidate_Write", 1, "NoWrapper", "InvalidateCachePrepare", "WriteBench" }.Execute();
-    }
     {
+        // 1 Rep, restart executable with repeat_execution.sh
+        // ExperimentDataType{ "Main_Terminate_Write", 1, "NoWrapper", "", "WriteBench" }.Execute();
+        // ExperimentDataType{ "Main_Terminate_Invalidate_Write", 1, "NoWrapper", "InvalidateCachePrepare", "WriteBench" }.Execute();
+    } {
         // ExperimentDataType{ "Thread_Write", REPETITIONS, "ThreadWrapper", "", "WriteBench" }.Execute();
         // ExperimentDataType{ "Thread_Invalidate_Write", REPETITIONS, "ThreadWrapper", "InvalidateCachePrepare", "WriteBench" }.Execute();
 
         // ExperimentDataType{ "Thread_Warm_Write", REPETITIONS, "ThreadWrapper", "WarmCachePrepare", "WriteBench" }.Execute();
         // ExperimentDataType{ "Thread_Cool_Write", REPETITIONS, "ThreadWrapper", "CoolCachePrepare", "WriteBench" }.Execute();
         // ExperimentDataType{ "Thread_ComplexCool_Write", REPETITIONS, "ThreadWrapper", "ComplexCoolCachePrepare", "WriteBench" }.Execute();
-    }
-    {    // System Call experiment, system_call_main.cpp manages parameters other than REPETITIONS
-         // ExperimentDataType{ "System_Call_Write", REPETITIONS, "SystemCallWrapper", "", "" }.Execute();
-         // ExperimentDataType{ "System_Call_Invalidate_Write", REPETITIONS, "SystemCallWrapper", "InvalidateCachePrepare", "" }.Execute();
-    }
-    {
+    } {
+        // System Call experiment, system_call_main.cpp manages parameters other than REPETITIONS
+        // ExperimentDataType{ "System_Call_Write", REPETITIONS, "SystemCallWrapper", "", "" }.Execute();
+        // ExperimentDataType{ "System_Call_Invalidate_Write", REPETITIONS, "SystemCallWrapper", "InvalidateCachePrepare", "" }.Execute();
+    } {
         // ExperimentDataType{ "Fork_Write", REPETITIONS, "ForkWrapper", "", "WriteBench" }.Execute();
         // ExperimentDataType{ "Fork_Invalidate_Write", REPETITIONS, "ForkWrapper", "InvalidateCachePrepare", "WriteBench" }.Execute();
 
@@ -333,17 +332,25 @@ auto main() -> int {
         // WriteExperiments();
 
         INSTRUMENT_END_SESSION();
+        // Pool.close();
         ret = std::system("sudo rmmod wbinvd.ko");
         assert(ret >= 0);
 
     } catch (const pmem::pool_error& e) {
         std::cout << e.what() << '\n';
+        // Pool.close();
         assert(false);
     } catch (const pmem::transaction_error& e) {
         std::cout << e.what() << '\n';
+        // Pool.close();
         assert(false);
     } catch (const std::bad_alloc& e) {
         std::cout << e.what() << '\n';
+        // Pool.close();
+        assert(false);
+    } catch (const std::logic_error& e) {
+        std::cout << e.what() << '\n';
+        // Pool.close();
         assert(false);
     }
     return 0;
