@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "RunBench",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "RunBench.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Launch",
             "type": "cppdbg",
             "request": "launch",
