@@ -16,7 +16,12 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/main",
-            "args": [],
+            "args": [
+                "malloc"
+                // "make_persistent_atomic",
+                // "4",
+                // "2"
+            ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
