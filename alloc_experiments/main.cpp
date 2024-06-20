@@ -1,6 +1,6 @@
+#include <array>
 #include <cassert>
 #include <chrono>
-#include <cmath>
 #include <filesystem>
 #include <functional>
 #include <iostream>
@@ -8,16 +8,15 @@
 #include <thread>
 
 #include <libpmemobj++/make_persistent_array_atomic.hpp>
-#include <libpmemobj++/make_persistent_atomic.hpp>
 #include <libpmemobj++/persistent_ptr.hpp>
 #include <libpmemobj++/pool.hpp>
-#include <libpmemobj++/transaction.hpp>
 
 #include <libpmem.h>
 
-#include <libvmmalloc.h>
-#include <malloc.h>
-#include <cstdlib>
+// #include <libvmmalloc.h>
+// #include <malloc.h>
+// #include <cstdlib>
+// #include <new>
 
 /*
 1.
@@ -28,41 +27,159 @@ Compare read speed of allocated addresses
 Compare allocations with libvmalloc, pmdk, DRAM malloc
 */
 namespace {
-    using AllocCB = std::function<void*(std::size_t)>;
-    using Clock = std::chrono::steady_clock;
-    using TimePoint = std::chrono::time_point<Clock>;
-    using Millis = std::chrono::milliseconds;
+    namespace Config {
+        constexpr std::size_t POOL_SIZE = 1024ULL * 1024ULL * 1024ULL * 16;    //16GB
+        constexpr std::size_t ALLOC_SIZE = 32;
+        const std::string NVM_DIR = "/mnt/pmem0/myrontsa/";
+    }    // namespace Config
 
-    const std::string POOL_PATH = "/mnt/pmem0/myrontsa/alloc_experiments_pool";
-    constexpr std::size_t POOL_SIZE = PMEMOBJ_MIN_POOL;
-    constexpr std::size_t ALLOC_SIZE = 32;
+    namespace Interface {
+        using ContextFunc = void (*)();
+        using AllocFunc = void* (*)(std::size_t);
+        constexpr ContextFunc InitPool;
+        constexpr ContextFunc DestroyPool;
+        constexpr AllocFunc Alloc;
+    }    // namespace Interface
+
+    namespace Default {
+        auto InitPool() -> void {}
+        auto DestroyPool() -> void {}
+        auto Alloc(std::size_t sz) -> void* { return operator new(sz); }
+#ifdef DEFAULT
+        Interface::InitPool = InitPool;
+        Interface::DestroyPool = DestroyPool;
+        Interface::Alloc = Alloc;
+#endif
+    }    // namespace Default
+
+    namespace Malloc {
+        auto InitPool() -> void {}
+        auto DestroyPool() -> void {}
+        auto Alloc(std::size_t sz) -> void* {
+            if (void* ptr = std::malloc(sz)) return ptr;
+            throw std::bad_alloc{};
+        }
+#ifdef MALLOC
+        Interface::InitPool = InitPool;
+        Interface::DestroyPool = DestroyPool;
+        Interface::Alloc = Alloc;
+#endif
+    }    // namespace Malloc
+
+    namespace JMalloc {
+        auto InitPool() -> void {}
+        auto DestroyPool() -> void {}
+        auto Alloc(std::size_t sz) -> void* {
+            (void)sz;
+            return {};
+            // if (void* ptr = std::malloc(sz)) return ptr;
+            // throw std::bad_alloc{};
+        }
+#ifdef JMALLOC
+        Interface::InitPool = JMalloc::InitPool;
+        Interface::DestroyPool = JMalloc::DestroyPool;
+        Interface::Alloc = JMalloc::Alloc;
+#endif
+    }    // namespace JMalloc
+
+    namespace Vmem {
+        auto InitPool() -> void {}
+        auto DestroyPool() -> void {}
+        auto Alloc(std::size_t sz) -> void* {
+            (void)sz;
+            return {};
+            // if (void* ptr = std::malloc(sz)) return ptr;
+            // throw std::bad_alloc{};
+        }
+#ifdef VMEM
+        Interface::InitPool = Vmem::InitPool;
+        Interface::DestroyPool = Vmem::DestroyPool;
+        Interface::Alloc = Vmem::Alloc;
+#endif
+    }    // namespace Vmem
+
+    namespace Vmmalloc {
+        auto InitPool() -> void {}
+        auto DestroyPool() -> void {}
+        auto Alloc(std::size_t sz) -> void* {
+            if (void* ptr = std::malloc(sz)) return ptr;
+            throw std::bad_alloc{};
+        }
+#ifdef VMMALLOC
+        Interface::InitPool = VMMALLOC::InitPool;
+        Interface::DestroyPool = VMMALLOC::DestroyPool;
+        Interface::Alloc = VMMALLOC::Alloc;
+#endif
+    }    // namespace Vmmalloc
+
+    namespace MemKind {
+        auto InitPool() -> void {}
+        auto DestroyPool() -> void {}
+        auto Alloc(std::size_t sz) -> void* {
+            if (void* ptr = std::malloc(sz)) return ptr;
+            throw std::bad_alloc{};
+        }
+#ifdef MEMKIND
+        Interface::InitPool = MemKind::InitPool;
+        Interface::DestroyPool = MemKind::DestroyPool;
+        Interface::Alloc = MemKind::Alloc;
+#endif
+    }    // namespace MemKind
+    namespace PmemobjAlloc {
+        auto InitPool() -> void {}
+        auto DestroyPool() -> void {}
+        auto Alloc(std::size_t sz) -> void* {
+            (void)sz;
+            return {};
+            // if (void* ptr = std::malloc(sz)) return ptr;
+            // throw std::bad_alloc{};
+        }
+#ifdef PMEMOBJ_ALLOC
+        Interface::InitPool = PmemobjAlloc::InitPool;
+        Interface::DestroyPool = PmemobjAlloc::DestroyPool;
+        Interface::Alloc = PmemobjAlloc::Alloc;
+#endif
+    }    // namespace PmemobjAlloc
+
+    namespace MakePersistentAtomic {
+        const std::string PoolPath = Config::NVM_DIR + "alloc_experiments_pool";
+        pmem::obj::pool_base Pool{};
+        auto InitPool() -> void {
+            const auto poolLayout = std::filesystem::path{ PoolPath }.filename().string();
+            if (!std::filesystem::exists(PoolPath)) {
+                pmem::obj::pool_base::create(PoolPath, poolLayout, Config::POOL_SIZE).close();
+            }
+            int ret = pmem::obj::pool_base::check(PoolPath, poolLayout);
+            if (ret == 0) {
+                std::cout << "Pool Inconsistent, exiting, ret: " << ret << "\n";
+                assert(false);
+                std::exit(EXIT_FAILURE);
+            }
+            Pool = pmem::obj::pool_base::open(PoolPath, poolLayout);
+        }
+        auto DestroyPool() -> void {
+            Pool.close();
+            [[maybe_unused]] int error = std::system(("rm " + PoolPath).data());
+            assert(!error);
+        }
+        auto Alloc(std::size_t bytes) -> void* {
+            pmem::obj::persistent_ptr<std::int8_t[]> ptr{};
+            pmem::obj::make_persistent_atomic<std::int8_t[]>(Pool, ptr, bytes);
+            return ptr.get();
+        }
+#ifdef MAKE_PERSISTENT_ATOMIC
+        InitPool = MakePersistentAtomic::InitPool;
+        DestroyPool = MakePersistentAtomic::DestroyPool;
+        Alloc = MakePersistentAtomic::Alloc;
+#endif
+    }    // namespace MakePersistentAtomic
 
     std::size_t LOGN_OPS = 7;
     std::size_t N_THREADS = std::thread::hardware_concurrency();
-    AllocCB ALLOC_CALLBACK;
-    std::size_t NOps;
-
-    struct AllocRoot {
-        int test;
-    };
-    struct Root {
-        pmem::obj::persistent_ptr<AllocRoot> allocRoot{};
-    };
-    pmem::obj::pool<Root> Pool{};
-    pmem::obj::persistent_ptr<AllocRoot> AllocRootPtr{};
-
-    auto Malloc(std::size_t bytes) -> void* {
-        return malloc(bytes);
-    }
-
-    auto MakePersistentAtomic(std::size_t bytes) -> void* {
-        pmem::obj::persistent_ptr<char[]> ptr{};
-        pmem::obj::make_persistent_atomic<char[]>(Pool, ptr, bytes);
-        return ptr.get();
-    }
+    std::size_t Nops;
 
     auto IsPmem() -> bool {
-        const std::string tmpPath = POOL_PATH + "_tmp";
+        const std::string tmpPath = Config::NVM_DIR + "tmp_pool_tmp";
         std::size_t mappedLen;
         int isPmem;
         void* addr = pmem_map_file(tmpPath.data(), 1, PMEM_FILE_CREATE, 0666, &mappedLen, &isPmem);
@@ -74,25 +191,14 @@ namespace {
         return isPmem;
     }
 
+    auto constexpr Pow10(std::size_t exp) -> std::size_t { return exp == 0 ? 1 : 10 * Pow10(exp - 1); }
     auto ParseArgs(int argc, char* argv[]) -> void {
         if (argc >= 2) {
-            ALLOC_CALLBACK = [](const std::string& name) -> AllocCB {
-                if (name == "malloc") return Malloc;
-                if (name == "make_persistent_atomic") return MakePersistentAtomic;
-                return {};
-            }(std::string{ argv[1] });
+            N_THREADS = std::stoul(argv[1]);
         }
         if (argc >= 3) {
-            N_THREADS = std::stoul(argv[2]);
-        }
-        if (argc >= 4) {
-            LOGN_OPS = std::stoul(argv[3]);
-            NOps = static_cast<std::size_t>(std::pow(10, LOGN_OPS));
-        }
-        if (!ALLOC_CALLBACK) {
-            std::cout << "Invalid ALLOC_CALLBACK" << N_THREADS << "\n";
-            assert(false);
-            std::exit(EXIT_FAILURE);
+            LOGN_OPS = std::stoul(argv[2]);
+            Nops = Pow10(LOGN_OPS);
         }
         if (N_THREADS <= 0) {
             std::cout << "Invalid N_THREADS" << N_THREADS << "\n";
@@ -106,38 +212,11 @@ namespace {
         }
     }
 
-    auto InitPool() -> void {
-        const auto poolLayout = std::filesystem::path{ POOL_PATH }.extension().c_str();
-        if (!std::filesystem::exists(POOL_PATH)) {
-            pmem::obj::pool<Root>::create(POOL_PATH, poolLayout, POOL_SIZE).close();
-        }
-        int ret = pmem::obj::pool<Root>::check(POOL_PATH, poolLayout);
-        if (ret == 0) {
-            std::cout << "Pool Inconsistent, exiting, ret: " << ret << "\n";
-            assert(false);
-            std::exit(EXIT_FAILURE);
-        }
-        Pool = pmem::obj::pool<Root>::open(POOL_PATH, poolLayout);
-        if (Pool.root()->allocRoot == nullptr) {
-            pmem::obj::make_persistent_atomic<AllocRoot>(Pool, Pool.root()->allocRoot);
-        }
-        AllocRootPtr = Pool.root()->allocRoot;
-    }
-
-    auto DestroyPool() -> void {
-        pmem::obj::delete_persistent_atomic<AllocRoot>(Pool.root()->allocRoot);
-        Pool.root()->allocRoot = nullptr;
-        Pool.persist(Pool.root()->allocRoot);
-        Pool.close();
-        [[maybe_unused]] int error = std::system(("rm " + POOL_PATH).data());
-        assert(!error);
-    }
-
     auto PinThisThreadToCore(std::size_t core) -> void {
         int err;
         err = pthread_setconcurrency(static_cast<int>(std::thread::hardware_concurrency()));
         if (err) {
-            std::cout << "pthread_setconcurrency error: " << strerror(errno) << '\n';
+            std::cout << "pthread_setconcurrency error: " << strerror(errno) << "\n";
             assert(false);
             std::exit(EXIT_FAILURE);
         }
@@ -146,16 +225,19 @@ namespace {
         CPU_SET(core, &cpu_mask);
         err = pthread_setaffinity_np(pthread_self(), sizeof(cpu_mask), &cpu_mask);
         if (err) {
-            std::cout << "pthread_setaffinity_np error: " << strerror(errno) << '\n';
+            std::cout << "pthread_setaffinity_np error: " << strerror(errno) << "\n";
             assert(false);
             std::exit(EXIT_FAILURE);
         }
     }
 
-    auto AllocBench() -> void {
-        std::size_t threadOps = NOps / N_THREADS;
-        std::vector<void*> allocs(NOps);
+    auto AllocBenchmark() -> void {
+        using Clock = std::chrono::steady_clock;
+        using Millis = std::chrono::milliseconds;
+        std::size_t threadOps = Nops / N_THREADS;
+        std::vector<void*> allocs(Nops);
         std::vector<std::thread> threads(N_THREADS);
+        // std::cout << "allocs capacity byte size: " << allocs.capacity() * sizeof(void*) << "\n";
         const auto begin = Clock::now();
         for (auto tid = 0u; tid < threads.size(); ++tid) {
             const auto threadBegin = tid * threadOps;
@@ -163,7 +245,7 @@ namespace {
             threads.at(tid) = std::thread([&allocs, tid, threadBegin, threadEnd]() {
                 PinThisThreadToCore(tid % N_THREADS);
                 for (auto i = threadBegin; i < threadEnd; ++i)
-                    allocs.at(i) = ALLOC_CALLBACK(ALLOC_SIZE);
+                    allocs.at(i) = Interface::Alloc(Config::ALLOC_SIZE);
             });
         }
         for (auto& t : threads) t.join();
@@ -171,18 +253,13 @@ namespace {
         std::cout << std::chrono::duration_cast<Millis>(end - begin).count() << "\n";
     }
 
-    auto ReadAllocBench() -> void {
-    }
-
 }    // namespace
 
 auto main(int argc, char* argv[]) -> int {
     ParseArgs(argc, argv);
     std::cout << "Persistent Memory Support: " << IsPmem() << "\n";
-    InitPool();
 
-    AllocBench();
-    ReadAllocBench();
-
-    DestroyPool();
+    Interface::InitPool();
+    AllocBenchmark();
+    Interface::DestroyPool();
 }

@@ -1,4 +1,4 @@
-DEBUG := 1
+DEBUG		:= 1
 
 CXX			:=	g++-11
 CXXFLAGS	:= -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wpedantic \
@@ -6,10 +6,8 @@ CXXFLAGS	:= -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wpedantic \
 -Wsign-conversion -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches \
 -Wlogical-op -Wnull-dereference -Wuseless-cast -Wdouble-promotion -Wformat=2 \
 -g3 -std=c++23
-# CXXFLAGS	:=	-O3 -std=c++23 -Wall -Wextra -pedantic -pthread -DNDEBUG
-LFLAGS		:=	-lpmem -lpmemobj -lvmmalloc
-# LFLAGS		:=	-lpmem -lpmem2 -lpmempool -lpmemobj -lpmemlog -lpmemkv_json_config -lpmemkv -lpmemblk
-TARGET		:=	main
+LDLIBS		:=	-lpmem -lpmemobj
+TARGETS		:=	bench_default bench_malloc
 
 ifeq ($(DEBUG),0)
 	CXXFLAGS += -O3 -DNDEBUG
@@ -19,10 +17,17 @@ endif
 
 .PHONY: clean
 
-all: $(TARGET)
+all: $(TARGETS)
 
-$(TARGET): $(TARGET).cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LFLAGS)
+bench_default: CXXFLAGS += -DDEFAULT
+bench_default: main.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
+
+bench_malloc: CXXFLAGS += -DMALLOC
+bench_malloc: main.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
+
+
 
 clean:
-	$(RM) $(TARGET)
+	$(RM) $(TARGETS)
