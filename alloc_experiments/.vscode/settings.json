@@ -62,8 +62,11 @@
         "typeinfo": "cpp"
     },
     "cSpell.ignoreWords": [
+        "JEMALLOC",
+        "JMALLOC",
         "LOGN_OPS",
         "MakePeristentAtomic",
+        "Memkind",
         "Pmemobj",
         "Vmmalloc",
         "libvmalloc",

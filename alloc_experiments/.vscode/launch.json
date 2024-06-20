@@ -5,36 +5,31 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "RunBench",
+            "name": "RunAll",
             "type": "debugpy",
             "request": "launch",
-            "program": "RunBench.py",
+            "program": "RunAll.py",
             "console": "integratedTerminal"
         },
         {
-            "name": "Default",
+            "name": "default",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/main",
+            "program": "${workspaceFolder}/build/bench_default",
             "args": [
                 "1",
                 "7"
             ],
-            "stopAtEntry": false,
             "cwd": "${fileDirname}",
-            "environment": [],
-            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
                 },
                 {
                     "description": "Set Disassembly Flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
                 }
             ],
             "preLaunchTask": "make"
@@ -43,41 +38,82 @@
             "name": "malloc",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/main",
+            "program": "${workspaceFolder}/build/bench_malloc",
             "args": [
                 "1",
                 "7"
             ],
-            "stopAtEntry": false,
             "cwd": "${fileDirname}",
-            "environment": [],
-            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
                 },
                 {
                     "description": "Set Disassembly Flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
                 }
             ],
             "preLaunchTask": "make"
         },
         {
-            "name": "lvmmalloc",
+            "name": "jemalloc",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/main",
+            "program": "${workspaceFolder}/build/bench_jemalloc",
             "args": [
                 "1",
                 "7"
             ],
-            "stopAtEntry": false,
             "cwd": "${fileDirname}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                }
+            ],
+            "preLaunchTask": "make"
+        },
+        {
+            "name": "vmem",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bench_vmem",
+            "args": [
+                "1",
+                "7"
+            ],
+            "cwd": "${fileDirname}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                }
+            ],
+            "preLaunchTask": "make"
+        },
+        {
+            "name": "vmmalloc",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bench_vmmalloc",
+            "args": [
+                "1",
+                "7"
+            ],
+            "cwd": "${fileDirname}",
+            "MIMode": "gdb",
             "environment": [
                 {
                     "name": "VMMALLOC_POOL_DIR",
@@ -88,18 +124,60 @@
                     "value": "17179869184" //16GB
                 }
             ],
-            "externalConsole": false,
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                }
+            ],
+            "preLaunchTask": "make"
+        },
+        {
+            "name": "memkind",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bench_memkind",
+            "args": [
+                "1",
+                "7"
+            ],
+            "cwd": "${fileDirname}",
             "MIMode": "gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
                 },
                 {
                     "description": "Set Disassembly Flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "make"
+        },
+        {
+            "name": "pmemobj_alloc",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bench_pmemobj_alloc",
+            "args": [
+                "1",
+                "7"
+            ],
+            "cwd": "${fileDirname}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
                 }
             ],
             "preLaunchTask": "make"
@@ -108,29 +186,24 @@
             "name": "make_persistent_atomic",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/main",
+            "program": "${workspaceFolder}/build/benc__make+persistent_atomic",
             "args": [
                 "1",
-                "3"
+                "7"
             ],
-            "stopAtEntry": false,
             "cwd": "${fileDirname}",
-            "environment": [],
-            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
                 },
                 {
                     "description": "Set Disassembly Flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
                 }
             ],
             "preLaunchTask": "make"
-        }
+        },
     ]
 }
