@@ -1,5 +1,13 @@
 DEBUG		:= 1
 
+SOURCES		:=	main.cpp interface.cpp
+LDLIBS		:=	-lpmem -lpmemobj -lvmem
+BUILDDIR	:=	build
+TARGETS		:=	\
+$(BUILDDIR)/bench_default $(BUILDDIR)/bench_malloc $(BUILDDIR)/bench_jemalloc \
+$(BUILDDIR)/bench_vmem $(BUILDDIR)/bench_vmmalloc $(BUILDDIR)/bench_memkind \
+$(BUILDDIR)/bench_pmemobj_alloc $(BUILDDIR)/bench_make_persistent_atomic
+
 CXX			:=	g++-11
 CXXFLAGS	:= \
 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wpedantic \
@@ -7,12 +15,7 @@ CXXFLAGS	:= \
 -Wsign-conversion -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches \
 -Wlogical-op -Wnull-dereference -Wuseless-cast -Wdouble-promotion -Wformat=2 \
 -g3 -std=c++23
-LDLIBS		:=	-lpmem -lpmemobj
-SOURCES		:=	main.cpp interface.cpp interface.h
-TARGETS		:=	\
-build/bench_default build/bench_malloc build/bench_jemalloc \
-build/bench_vmem build/bench_vmmalloc build/bench_memkind \
-build/bench_pmemobj_alloc build/bench_make_persistent_atomic
+
 
 ifeq ($(DEBUG),0)
 	CXXFLAGS += -O3 -DNDEBUG
@@ -24,37 +27,37 @@ endif
 
 all: $(TARGETS)
 
-build/bench_default: CXXFLAGS += -DDEFAULT
-build/bench_default: $(SOURCES)
+$(BUILDDIR)/bench_default: CXXFLAGS += -DBENCH_DEFAULT
+$(BUILDDIR)/bench_default: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
-build/bench_malloc: CXXFLAGS += -DMALLOC
-build/bench_malloc: $(SOURCES)
+$(BUILDDIR)/bench_malloc: CXXFLAGS += -DBENCH_MALLOC
+$(BUILDDIR)/bench_malloc: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
-build/bench_jemalloc: CXXFLAGS += -DJEMALLOC
-build/bench_jemalloc: $(SOURCES)
+$(BUILDDIR)/bench_jemalloc: CXXFLAGS += -DBENCH_JEMALLOC
+$(BUILDDIR)/bench_jemalloc: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
-build/bench_vmem: CXXFLAGS += -DVMEM
-build/bench_vmem: $(SOURCES)
+$(BUILDDIR)/bench_vmem: CXXFLAGS += -DBENCH_VMEM
+$(BUILDDIR)/bench_vmem: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
-build/bench_vmmalloc: CXXFLAGS += -DVMMALLOC
-build/bench_vmmalloc: LDLIBS += -lvmmalloc
-build/bench_vmmalloc: $(SOURCES)
+$(BUILDDIR)/bench_vmmalloc: CXXFLAGS += -DBENCH_VMMALLOC
+$(BUILDDIR)/bench_vmmalloc: LDLIBS += -lvmmalloc
+$(BUILDDIR)/bench_vmmalloc: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
-build/bench_memkind: CXXFLAGS += -DMEMKIND
-build/bench_memkind: $(SOURCES)
+$(BUILDDIR)/bench_memkind: CXXFLAGS += -DBENCH_MEMKIND
+$(BUILDDIR)/bench_memkind: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
-build/bench_pmemobj_alloc: CXXFLAGS += -DPMEMOBJ_ALLOC
-build/bench_pmemobj_alloc: $(SOURCES)
+$(BUILDDIR)/bench_pmemobj_alloc: CXXFLAGS += -DBENCH_PMEMOBJ_ALLOC
+$(BUILDDIR)/bench_pmemobj_alloc: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
-build/bench_make_persistent_atomic: CXXFLAGS += -DMAKE_PERSISTENT_ATOMIC
-build/bench_make_persistent_atomic: $(SOURCES)
+$(BUILDDIR)/bench_make_persistent_atomic: CXXFLAGS += -DBENCH_MAKE_PERSISTENT_ATOMIC
+$(BUILDDIR)/bench_make_persistent_atomic: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
 clean:
