@@ -1,12 +1,14 @@
 DEBUG		:= 1
 
 SOURCES		:=	main.cpp interface.cpp
-LDLIBS		:=	-lpmem -lpmemobj -lvmem -lmemkind
+LDLIBS		:=	-pthread -lpmem -lpmemobj -lvmem -lmemkind
 BUILDDIR	:=	build
 TARGETS		:=	\
 $(BUILDDIR)/bench_default $(BUILDDIR)/bench_malloc $(BUILDDIR)/bench_jemalloc \
-$(BUILDDIR)/bench_vmem $(BUILDDIR)/bench_vmmalloc $(BUILDDIR)/bench_memkind \
+$(BUILDDIR)/bench_vmem \
+$(BUILDDIR)/bench_memkind \
 $(BUILDDIR)/bench_pmemobj_alloc $(BUILDDIR)/bench_make_persistent_atomic
+# $(BUILDDIR)/bench_vmmalloc
 
 CXX			:=	g++-11
 CXXFLAGS	:= \
