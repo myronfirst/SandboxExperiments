@@ -26,3 +26,12 @@ sudo make install
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 ```
 - Then add `-lvmmalloc` linker flag to Makefile. This replaces the default memory allocator for the binary.
+
+```
+sudo apt install libvmmalloc1 libvmmalloc-dev
+```
+
+### jemalloc
+```
+sudo apt install libjemalloc2 libjemalloc-dev
+```

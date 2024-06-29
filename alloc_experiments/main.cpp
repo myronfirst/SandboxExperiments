@@ -15,7 +15,7 @@ namespace {
     std::size_t N_THREADS = std::thread::hardware_concurrency();
     std::size_t Nops;
 
-    auto IsPmem() -> bool {
+    [[maybe_unused]] auto IsPmem() -> bool {
         const std::string tmpPath = std::string{ Config::NVM_DIR } + "tmp_pool_tmp";
         std::size_t mappedLen;
         int isPmem;
@@ -94,7 +94,7 @@ namespace {
 
 auto main(int argc, char* argv[]) -> int {
     ParseArgs(argc, argv);
-    std::cout << "Persistent Memory Support: " << IsPmem() << "\n";
+    // std::cout << "Persistent Memory Support: " << IsPmem() << "\n";
     [[maybe_unused]] int err = std::system(("mkdir -p " + std::string{ Config::NVM_DIR }).data());
     if (err) throw std::system_error{ std::error_code(err, std::system_category()) };
 

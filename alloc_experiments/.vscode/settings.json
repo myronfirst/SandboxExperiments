@@ -72,5 +72,6 @@
         "libvmalloc",
         "pmdk",
         "pthread_setaffinity_np"
-    ]
+    ],
+    "python.defaultInterpreterPath": "python3"
 }

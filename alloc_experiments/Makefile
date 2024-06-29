@@ -5,10 +5,9 @@ LDLIBS		:=	-pthread -lpmem -lpmemobj -lvmem -lmemkind
 BUILDDIR	:=	build
 TARGETS		:=	\
 $(BUILDDIR)/bench_default $(BUILDDIR)/bench_malloc $(BUILDDIR)/bench_jemalloc \
-$(BUILDDIR)/bench_vmem \
-$(BUILDDIR)/bench_memkind \
+$(BUILDDIR)/bench_vmem $(BUILDDIR)/bench_vmmalloc $(BUILDDIR)/bench_memkind \
 $(BUILDDIR)/bench_pmemobj_alloc $(BUILDDIR)/bench_make_persistent_atomic
-# $(BUILDDIR)/bench_vmmalloc
+
 
 CXX			:=	g++-11
 CXXFLAGS	:= \
@@ -38,7 +37,8 @@ $(BUILDDIR)/bench_malloc: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
 $(BUILDDIR)/bench_jemalloc: CXXFLAGS += -DBENCH_JEMALLOC
-$(BUILDDIR)/bench_jemalloc: LDLIBS += -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
+# $(BUILDDIR)/bench_jemalloc: LDLIBS += -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
+$(BUILDDIR)/bench_jemalloc: LDLIBS += -ljemalloc
 $(BUILDDIR)/bench_jemalloc: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
