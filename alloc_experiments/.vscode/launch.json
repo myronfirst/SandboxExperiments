@@ -186,7 +186,7 @@
             "name": "make_persistent_atomic",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/benc__make+persistent_atomic",
+            "program": "${workspaceFolder}/build/bench_make_persistent_atomic",
             "args": [
                 "1",
                 "7"

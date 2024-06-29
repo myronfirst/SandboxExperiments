@@ -1,7 +1,7 @@
 DEBUG		:= 1
 
 SOURCES		:=	main.cpp interface.cpp
-LDLIBS		:=	-lpmem -lpmemobj -lvmem
+LDLIBS		:=	-lpmem -lpmemobj -lvmem -lmemkind
 BUILDDIR	:=	build
 TARGETS		:=	\
 $(BUILDDIR)/bench_default $(BUILDDIR)/bench_malloc $(BUILDDIR)/bench_jemalloc \
@@ -36,6 +36,7 @@ $(BUILDDIR)/bench_malloc: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
 $(BUILDDIR)/bench_jemalloc: CXXFLAGS += -DBENCH_JEMALLOC
+$(BUILDDIR)/bench_jemalloc: LDLIBS += -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
 $(BUILDDIR)/bench_jemalloc: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 

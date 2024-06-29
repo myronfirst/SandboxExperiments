@@ -5,11 +5,17 @@
 #include <stdexcept>
 #include <string>
 
+#include <jemalloc/jemalloc.h>
+#include <cstdlib>
+
 #include <libvmem.h>
+
+#include <memkind.h>
 
 #include <libpmemobj.h>
 
 #include <libpmemobj++/make_persistent_array_atomic.hpp>
+#include <libpmemobj++/make_persistent_atomic.hpp>
 #include <libpmemobj++/persistent_ptr.hpp>
 #include <libpmemobj++/pool.hpp>
 
@@ -32,10 +38,8 @@ namespace JeMalloc {
     [[maybe_unused]] auto InitPool() -> void {}
     [[maybe_unused]] auto DestroyPool() -> void {}
     [[maybe_unused]] auto Alloc(std::size_t sz) -> void* {
-        (void)sz;
-        return {};
-        // if (void* ptr = std::malloc(sz)) return ptr;
-        // throw std::bad_alloc{};
+        if (void* ptr = std::malloc(sz)) return ptr;
+        throw std::bad_alloc{};
     }
 }    // namespace JeMalloc
 
@@ -64,23 +68,30 @@ namespace Vmmalloc {
 }    // namespace Vmmalloc
 
 namespace Memkind {
-    [[maybe_unused]] auto InitPool() -> void {}
-    [[maybe_unused]] auto DestroyPool() -> void {}
+    memkind_t Pool{};
+    [[maybe_unused]] auto InitPool() -> void {
+        int ok = memkind_create_pmem(Config::NVM_DIR.data(), Config::POOL_SIZE, &Pool);
+        if (ok != MEMKIND_SUCCESS) throw std::runtime_error{ "memkind_create_pmem" };
+    }
+    [[maybe_unused]] auto DestroyPool() -> void {
+        int ok = memkind_destroy_kind(Pool);
+        if (ok != MEMKIND_SUCCESS) throw std::runtime_error{ "memkind_destroy_kind" };
+    }
     [[maybe_unused]] auto Alloc(std::size_t sz) -> void* {
-        if (void* ptr = std::malloc(sz)) return ptr;
+        if (void* ptr = memkind_malloc(Pool, sz)) return ptr;
         throw std::bad_alloc{};
     }
 }    // namespace Memkind
+
 namespace PmemobjAlloc {
     const char* PoolPath = (std::string{ Config::NVM_DIR } + "/pmemobj_alloc").data();
     PMEMobjpool* Pool{};
     [[maybe_unused]] auto InitPool() -> void {
         const char* poolLayout = std::filesystem::path{ PoolPath }.filename().string().c_str();
         if (!std::filesystem::exists(PoolPath)) {
-            Pool = pmemobj_create(PoolPath, poolLayout, Config::POOL_SIZE, /* mode */);
+            Pool = pmemobj_create(PoolPath, poolLayout, Config::POOL_SIZE, 0666);
             pmemobj_close(Pool);
         }
-        int ret = pmem::obj::pool_base::check(PoolPath, poolLayout);
         int ok = pmemobj_check(PoolPath, poolLayout);
         if (!ok) throw std::runtime_error{ "pmemobj_check" };
         Pool = pmemobj_open(PoolPath, poolLayout);
@@ -95,6 +106,8 @@ namespace PmemobjAlloc {
     // TOID(my_byte)
     // barp;
     [[maybe_unused]] auto Alloc(std::size_t sz) -> void* {
+        (void)sz;
+        return {};
         //Allocating below 64B is inefficient
         // POBJ_ZALLOC(Pool, D_RW(ptr), Config::ALLOC_SIZE, 0);
 
