@@ -1,0 +1,8 @@
+{
+    "editor.formatOnSave": true,
+    "files.associations": {
+        "*.alpha": "javascript",
+        "*.module": "php",
+        "chrono": "cpp"
+    }
+}
