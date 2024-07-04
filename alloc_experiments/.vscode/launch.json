@@ -5,6 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Plot",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/Plots",
+            "program": "Plot.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "RunAll",
             "type": "debugpy",
             "request": "launch",
@@ -18,7 +26,8 @@
             "program": "${workspaceFolder}/build/bench_default",
             "args": [
                 "1",
-                "7"
+                "7",
+                "Alloc"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",
@@ -41,7 +50,8 @@
             "program": "${workspaceFolder}/build/bench_malloc",
             "args": [
                 "1",
-                "7"
+                "7",
+                "Alloc"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",
@@ -64,7 +74,8 @@
             "program": "${workspaceFolder}/build/bench_jemalloc",
             "args": [
                 "1",
-                "7"
+                "7",
+                "Alloc"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",
@@ -87,7 +98,8 @@
             "program": "${workspaceFolder}/build/bench_vmem",
             "args": [
                 "1",
-                "7"
+                "7",
+                "Alloc"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",
@@ -110,7 +122,8 @@
             "program": "${workspaceFolder}/build/bench_vmmalloc",
             "args": [
                 "1",
-                "7"
+                "7",
+                "Alloc"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",
@@ -143,7 +156,8 @@
             "program": "${workspaceFolder}/build/bench_memkind",
             "args": [
                 "1",
-                "7"
+                "7",
+                "Write"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",
@@ -166,7 +180,8 @@
             "program": "${workspaceFolder}/build/bench_pmemobj_alloc",
             "args": [
                 "1",
-                "7"
+                "7",
+                "Alloc"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",
@@ -189,7 +204,8 @@
             "program": "${workspaceFolder}/build/bench_make_persistent_atomic",
             "args": [
                 "1",
-                "7"
+                "7",
+                "Alloc"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",

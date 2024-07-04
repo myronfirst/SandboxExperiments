@@ -13,6 +13,10 @@
 namespace {
     std::size_t LOGN_OPS = 7;
     std::size_t N_THREADS = std::thread::hardware_concurrency();
+    enum class BenchOpType { Alloc,
+                             Read,
+                             Write };
+    BenchOpType BenchOp = BenchOpType::Alloc;
     std::size_t Nops;
 
     [[maybe_unused]] auto IsPmem() -> bool {
@@ -36,6 +40,14 @@ namespace {
         if (argc >= 3) {
             LOGN_OPS = std::stoul(argv[2]);
             Nops = Pow10(LOGN_OPS);
+        }
+        if (argc >= 4) {
+            BenchOp = ([](const std::string& arg) -> BenchOpType {
+                if (arg == "Alloc") return BenchOpType::Alloc;
+                if (arg == "Read") return BenchOpType::Read;
+                if (arg == "Write") return BenchOpType::Write;
+                throw std::logic_error{ "BenchOp invalid arg" };
+            })(argv[3]);
         }
         if (N_THREADS <= 0) {
             std::cout << "Invalid N_THREADS" << N_THREADS << "\n";
@@ -68,13 +80,32 @@ namespace {
         }
     }
 
-    auto AllocBenchmark() -> void {
-        using Clock = std::chrono::steady_clock;
-        using Millis = std::chrono::milliseconds;
+    using Clock = std::chrono::steady_clock;
+    using Millis = std::chrono::milliseconds;
+    struct Type {
+        char data[Config::ALLOC_SIZE]{};
+    };
+    inline constexpr std::size_t TypeSize = sizeof(Type);
+
+    auto Operation(std::vector<Type*>& vec, std::size_t idx) -> void {
+        switch (BenchOp) {
+            case BenchOpType::Alloc: vec.at(idx) = static_cast<Type*>(Interface::Alloc(TypeSize)); break;
+            case BenchOpType::Read: (void)*(vec.at(idx)); break;
+            case BenchOpType::Write: *(vec.at(idx)) = Type{}; break;
+            default: throw std::logic_error{ "BenchOp default case" };
+        }
+    }
+
+    auto Benchmark() -> void {
         std::size_t threadOps = Nops / N_THREADS;
-        std::vector<void*> allocs(Nops);
+        std::vector<Type*> allocs(Nops);
         std::vector<std::thread> threads(N_THREADS);
         // std::cout << "allocs capacity byte size: " << allocs.capacity() * sizeof(void*) << "\n";
+        if (BenchOp != BenchOpType::Alloc) {
+            for (auto& ptr : allocs)
+                ptr = static_cast<Type*>(Interface::Alloc(TypeSize));
+        }
+
         const auto begin = Clock::now();
         for (auto tid = 0u; tid < threads.size(); ++tid) {
             const auto threadBegin = tid * threadOps;
@@ -82,7 +113,7 @@ namespace {
             threads.at(tid) = std::thread([&allocs, tid, threadBegin, threadEnd]() {
                 PinThisThreadToCore(tid % N_THREADS);
                 for (auto i = threadBegin; i < threadEnd; ++i)
-                    allocs.at(i) = Interface::Alloc(Config::ALLOC_SIZE);
+                    Operation(allocs, i);
             });
         }
         for (auto& t : threads) t.join();
@@ -99,6 +130,6 @@ auto main(int argc, char* argv[]) -> int {
     if (err) throw std::system_error{ std::error_code(err, std::system_category()) };
 
     Interface::InitPool();
-    AllocBenchmark();
+    Benchmark();
     Interface::DestroyPool();
 }
