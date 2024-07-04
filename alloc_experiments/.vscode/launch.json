@@ -204,8 +204,32 @@
             "program": "${workspaceFolder}/build/bench_make_persistent_atomic",
             "args": [
                 "1",
-                "7",
+                "6",
                 "Alloc"
+            ],
+            "cwd": "${fileDirname}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                }
+            ],
+            "preLaunchTask": "make"
+        },
+        {
+            "name": "pmem",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bench_pmem",
+            "args": [
+                "1",
+                "7",
+                "Write"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",

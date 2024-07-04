@@ -1,0 +1,9 @@
+allocator,threads,milliseconds
+make_persistent_atomic,1,139
+make_persistent_atomic,2,80
+make_persistent_atomic,4,54
+make_persistent_atomic,8,37
+make_persistent_atomic,12,29
+make_persistent_atomic,16,26
+make_persistent_atomic,20,21
+make_persistent_atomic,24,19

@@ -6,7 +6,8 @@ BUILDDIR	:=	build
 TARGETS		:=	\
 $(BUILDDIR)/bench_default $(BUILDDIR)/bench_malloc $(BUILDDIR)/bench_jemalloc \
 $(BUILDDIR)/bench_vmem $(BUILDDIR)/bench_vmmalloc $(BUILDDIR)/bench_memkind \
-$(BUILDDIR)/bench_pmemobj_alloc $(BUILDDIR)/bench_make_persistent_atomic
+$(BUILDDIR)/bench_pmemobj_alloc $(BUILDDIR)/bench_make_persistent_atomic \
+$(BUILDDIR)/bench_pmem
 
 
 CXX			:=	g++-11
@@ -61,6 +62,10 @@ $(BUILDDIR)/bench_pmemobj_alloc: $(SOURCES) | $(BUILDDIR)
 
 $(BUILDDIR)/bench_make_persistent_atomic: CXXFLAGS += -DBENCH_MAKE_PERSISTENT_ATOMIC
 $(BUILDDIR)/bench_make_persistent_atomic: $(SOURCES) | $(BUILDDIR)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
+
+$(BUILDDIR)/bench_pmem: CXXFLAGS += -DBENCH_PMEM
+$(BUILDDIR)/bench_pmem: $(SOURCES) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
 clean:

@@ -47,3 +47,11 @@ memkind,12,414
 memkind,16,1016
 memkind,20,265
 memkind,24,1155
+make_persistent_atomic,1,18601
+make_persistent_atomic,2,9772
+make_persistent_atomic,4,5139
+make_persistent_atomic,8,2865
+make_persistent_atomic,12,2053
+make_persistent_atomic,16,1749
+make_persistent_atomic,20,1459
+make_persistent_atomic,24,1355

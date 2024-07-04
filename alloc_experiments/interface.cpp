@@ -19,6 +19,8 @@
 #include <libpmemobj++/persistent_ptr.hpp>
 #include <libpmemobj++/pool.hpp>
 
+#include <libpmem.h>
+
 namespace Default {
     [[maybe_unused]] auto InitPool() -> void {}
     [[maybe_unused]] auto DestroyPool() -> void {}
@@ -139,11 +141,38 @@ namespace MakePersistentAtomic {
     }
     [[maybe_unused]] auto Alloc(std::size_t bytes) -> void* {
         //Allocating below 64B is inefficient
-        pmem::obj::persistent_ptr<std::int8_t[]> ptr{};
-        pmem::obj::make_persistent_atomic<std::int8_t[]>(Pool, ptr, bytes);
+        pmem::obj::persistent_ptr<char[]> ptr{};
+        pmem::obj::make_persistent_atomic<char[]>(Pool, ptr, bytes);
         return ptr.get();
     }
 }    // namespace MakePersistentAtomic
+
+namespace Pmem {
+    const std::string PoolPath = std::string{ Config::NVM_DIR } + "/pmem";
+    char* PmemAddr{};
+    std::size_t MappedLen{};
+    char* AllocIdx{};
+    [[maybe_unused]] auto InitPool() -> void {
+        int isPmem;
+        PmemAddr = static_cast<char*>(pmem_map_file(PoolPath.data(), Config::POOL_SIZE, PMEM_FILE_CREATE, 0666, &MappedLen, &isPmem));
+        if (!PmemAddr) throw std::runtime_error{ "pmem_map_file" };
+        if (!isPmem) throw std::runtime_error{ "pmem_map_file" };
+        AllocIdx = PmemAddr;
+    }
+    [[maybe_unused]] auto DestroyPool() -> void {
+        [[maybe_unused]] int err = pmem_unmap(PmemAddr, MappedLen);
+        if (err) throw std::runtime_error{ "pmem_unmap" };
+        err = std::system(("rm " + PoolPath).data());
+        if (err) throw std::system_error{ std::error_code(err, std::system_category()) };
+        AllocIdx = nullptr;
+    }
+    [[maybe_unused]] auto Alloc(std::size_t sz) -> void* {
+        if (PmemAddr + MappedLen <= AllocIdx + sz) throw std::bad_alloc{};
+        void* ptr = AllocIdx;
+        AllocIdx += sz;
+        return ptr;
+    }
+}    // namespace Pmem
 
 namespace Interface {
 #ifdef BENCH_DEFAULT
@@ -185,5 +214,11 @@ namespace Interface {
     auto InitPool() -> void { MakePersistentAtomic::InitPool(); }
     auto DestroyPool() -> void { MakePersistentAtomic::DestroyPool(); }
     auto Alloc(std::size_t sz) -> void* { return MakePersistentAtomic::Alloc(sz); }
+#endif
+
+#ifdef BENCH_PMEM
+    auto InitPool() -> void { Pmem::InitPool(); }
+    auto DestroyPool() -> void { Pmem::DestroyPool(); }
+    auto Alloc(std::size_t sz) -> void* { return Pmem::Alloc(sz); }
 #endif
 }    // namespace Interface

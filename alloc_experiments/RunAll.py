@@ -4,19 +4,19 @@ import os
 from pathlib import Path
 
 BENCHES = [
-    './build/bench_default',
-    './build/bench_malloc',
-    './build/bench_jemalloc',
-    './build/bench_vmem',
-    './build/bench_vmmalloc',
-    './build/bench_memkind',
+    # './build/bench_default',
+    # './build/bench_malloc',
+    # './build/bench_jemalloc',
+    # './build/bench_vmem',
+    # './build/bench_vmmalloc',
+    # './build/bench_memkind',
     # './build/bench_pmemobj_alloc',
-    # './build/bench_make_persistent_atomic',
+    './build/bench_make_persistent_atomic',
 ]
 OPERATIONS = [
-    # 'Alloc',
+    'Alloc',
     'Read',
-    # 'Write',
+    'Write',
 ]
 N_THREADS = [
     '1',
