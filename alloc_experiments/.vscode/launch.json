@@ -180,8 +180,8 @@
             "program": "${workspaceFolder}/build/bench_pmemobj_alloc",
             "args": [
                 "1",
-                "7",
-                "Alloc"
+                "6",
+                "Write"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",
@@ -204,8 +204,8 @@
             "program": "${workspaceFolder}/build/bench_make_persistent_atomic",
             "args": [
                 "1",
-                "6",
-                "Alloc"
+                "8",
+                "Read"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",

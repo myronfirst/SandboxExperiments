@@ -10,13 +10,17 @@ BENCHES = [
     # './build/bench_vmem',
     # './build/bench_vmmalloc',
     # './build/bench_memkind',
-    # './build/bench_pmemobj_alloc',
-    './build/bench_make_persistent_atomic',
+    './build/bench_pmemobj_alloc',
+    # './build/bench_make_persistent_atomic',
+    # './build/bench_pmem',
 ]
+# run Read operation with LOGN_OPS = '8', then change NUM_OPS=10**8 in Plot.py
+# do not run Alloc operation with bench_pmem. It is erroneous
+
 OPERATIONS = [
-    'Alloc',
+    # 'Alloc',
     'Read',
-    'Write',
+    # 'Write',
 ]
 N_THREADS = [
     '1',
@@ -29,7 +33,7 @@ N_THREADS = [
     '24',
 ]
 
-LOGN_OPS = '7'
+LOGN_OPS = '8'
 
 
 def main():

@@ -6,6 +6,7 @@ import pathlib
 
 DATA_PATH_DEFAULT = 'Traces.csv'
 COMMENT_CHAR = '#'
+# NUM_OPS = 10**7
 NUM_OPS = 10**7
 
 DROP_MEASUREMENTS = 5
@@ -19,16 +20,19 @@ PALETTE_ORDER = [
     'memkind',
     'pmemobj_alloc',
     'make_persistent_atomic',
+    'pmem',
 ]
 
 TRACE_FILES = [
-    # 'Alloc_All.csv',
-    # 'Alloc_NoJeMalloc.csv',
-    # 'Read_All.csv',
-    # 'Write_All.csv',
+    'Alloc_All.csv',
+    'Alloc_NoExtremes.csv',
+    'Write_All.csv',
     # 'Write_Volatile.csv',
-    # 'Write_Persistence.csv',
+    'Write_Persistence.csv',
+    # 'Read_All.csv',
 ]
+
+# On Read_All.csv, change NUM_OPS to 10**8
 
 
 def drop_measurements(df):

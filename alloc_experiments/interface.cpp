@@ -86,17 +86,18 @@ namespace Memkind {
 }    // namespace Memkind
 
 namespace PmemobjAlloc {
-    const char* PoolPath = (std::string{ Config::NVM_DIR } + "/pmemobj_alloc").data();
+    const std::string PoolPath = std::string{ Config::NVM_DIR } + "/pmemobj_alloc";
     PMEMobjpool* Pool{};
     [[maybe_unused]] auto InitPool() -> void {
-        const char* poolLayout = std::filesystem::path{ PoolPath }.filename().string().c_str();
-        if (!std::filesystem::exists(PoolPath)) {
-            Pool = pmemobj_create(PoolPath, poolLayout, Config::POOL_SIZE, 0666);
+        const std::string poolLayout = std::filesystem::path{ PoolPath }.filename().string();
+        if (!std::filesystem::exists(PoolPath.data())) {
+            Pool = pmemobj_create(PoolPath.data(), poolLayout.data(), Config::POOL_SIZE, 0666);
             pmemobj_close(Pool);
         }
-        int ok = pmemobj_check(PoolPath, poolLayout);
+        int ok = pmemobj_check(PoolPath.data(), poolLayout.data());
         if (!ok) throw std::runtime_error{ "pmemobj_check" };
-        Pool = pmemobj_open(PoolPath, poolLayout);
+        Pool = pmemobj_open(PoolPath.data(), poolLayout.data());
+        if (!Pool) throw std::runtime_error{ "pmemobj_open" };
     }
     [[maybe_unused]] auto DestroyPool() -> void {
         pmemobj_close(Pool);
@@ -104,17 +105,12 @@ namespace PmemobjAlloc {
         if (err) throw std::system_error{ std::error_code(err, std::system_category()) };
     }
 
-    // TOID_DECLARE(my_byte, 0);
-    // TOID(my_byte)
-    // barp;
     [[maybe_unused]] auto Alloc(std::size_t sz) -> void* {
-        (void)sz;
-        return {};
         //Allocating below 64B is inefficient
-        // POBJ_ZALLOC(Pool, D_RW(ptr), Config::ALLOC_SIZE, 0);
-
-        // if (void* ptr = std::malloc(sz)) return ptr;
-        // throw std::bad_alloc{};
+        PMEMoid ptr;
+        int err = pmemobj_alloc(Pool, &ptr, sizeof(char) * sz, 0, nullptr, nullptr);
+        if (err) throw std::bad_alloc{};
+        return pmemobj_direct(ptr);
     }
 }    // namespace PmemobjAlloc
 
@@ -139,10 +135,10 @@ namespace MakePersistentAtomic {
         [[maybe_unused]] int err = std::system(("rm " + PoolPath).data());
         if (err) throw std::system_error{ std::error_code(err, std::system_category()) };
     }
-    [[maybe_unused]] auto Alloc(std::size_t bytes) -> void* {
+    [[maybe_unused]] auto Alloc(std::size_t sz) -> void* {
         //Allocating below 64B is inefficient
         pmem::obj::persistent_ptr<char[]> ptr{};
-        pmem::obj::make_persistent_atomic<char[]>(Pool, ptr, bytes);
+        pmem::obj::make_persistent_atomic<char[]>(Pool, ptr, sz);
         return ptr.get();
     }
 }    // namespace MakePersistentAtomic
@@ -215,7 +211,6 @@ namespace Interface {
     auto DestroyPool() -> void { MakePersistentAtomic::DestroyPool(); }
     auto Alloc(std::size_t sz) -> void* { return MakePersistentAtomic::Alloc(sz); }
 #endif
-
 #ifdef BENCH_PMEM
     auto InitPool() -> void { Pmem::InitPool(); }
     auto DestroyPool() -> void { Pmem::DestroyPool(); }

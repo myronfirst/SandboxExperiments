@@ -59,7 +59,9 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "typeindex": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "optional": "cpp",
+        "fstream": "cpp"
     },
     "cSpell.ignoreWords": [
         "JEMALLOC",
@@ -75,4 +77,5 @@
     ],
     "python.defaultInterpreterPath": "python3",
     "C_Cpp.default.compilerPath": "/usr/bin/g++-11",
+    "C_Cpp.default.browse.databaseFilename": "/tmp/.vscode/browse.vc.db",
 }

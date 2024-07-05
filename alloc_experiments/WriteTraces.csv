@@ -1,0 +1,9 @@
+allocator,threads,milliseconds
+pmemobj_alloc,1,10537
+pmemobj_alloc,2,4536
+pmemobj_alloc,4,2156
+pmemobj_alloc,8,793
+pmemobj_alloc,12,877
+pmemobj_alloc,16,927
+pmemobj_alloc,20,960
+pmemobj_alloc,24,1006
