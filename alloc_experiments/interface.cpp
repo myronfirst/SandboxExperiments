@@ -14,7 +14,7 @@
 
 #include <libpmemobj.h>
 
-#include <libpmemobj++/make_persistent_array_atomic.hpp>
+// #include <libpmemobj++/make_persistent_array_atomic.hpp>
 #include <libpmemobj++/make_persistent_atomic.hpp>
 #include <libpmemobj++/persistent_ptr.hpp>
 #include <libpmemobj++/pool.hpp>
@@ -137,8 +137,9 @@ namespace MakePersistentAtomic {
     }
     [[maybe_unused]] auto Alloc(std::size_t sz) -> void* {
         //Allocating below 64B is inefficient
-        pmem::obj::persistent_ptr<char[]> ptr{};
-        pmem::obj::make_persistent_atomic<char[]>(Pool, ptr, sz);
+        (void)sz;
+        pmem::obj::persistent_ptr<Type> ptr{};
+        pmem::obj::make_persistent_atomic<Type>(Pool, ptr);
         return ptr.get();
     }
 }    // namespace MakePersistentAtomic

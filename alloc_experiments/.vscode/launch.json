@@ -27,6 +27,7 @@
             "args": [
                 "1",
                 "7",
+                "None",
                 "Alloc"
             ],
             "cwd": "${fileDirname}",
@@ -51,6 +52,7 @@
             "args": [
                 "1",
                 "7",
+                "None",
                 "Alloc"
             ],
             "cwd": "${fileDirname}",
@@ -75,6 +77,7 @@
             "args": [
                 "1",
                 "7",
+                "None",
                 "Alloc"
             ],
             "cwd": "${fileDirname}",
@@ -99,6 +102,7 @@
             "args": [
                 "1",
                 "7",
+                "None",
                 "Alloc"
             ],
             "cwd": "${fileDirname}",
@@ -123,6 +127,7 @@
             "args": [
                 "1",
                 "7",
+                "None",
                 "Alloc"
             ],
             "cwd": "${fileDirname}",
@@ -157,6 +162,7 @@
             "args": [
                 "1",
                 "7",
+                "Block",
                 "Write"
             ],
             "cwd": "${fileDirname}",
@@ -180,8 +186,9 @@
             "program": "${workspaceFolder}/build/bench_pmemobj_alloc",
             "args": [
                 "1",
-                "6",
-                "Write"
+                "7",
+                "None",
+                "Alloc"
             ],
             "cwd": "${fileDirname}",
             "MIMode": "gdb",
@@ -205,6 +212,7 @@
             "args": [
                 "1",
                 "8",
+                "Block",
                 "Read"
             ],
             "cwd": "${fileDirname}",
@@ -229,6 +237,7 @@
             "args": [
                 "1",
                 "7",
+                "Block",
                 "Write"
             ],
             "cwd": "${fileDirname}",

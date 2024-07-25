@@ -1,6 +1,7 @@
 #ifndef INTERFACE_H
 #define INTERFACE_H
 
+#include <chrono>
 #include <cstdint>
 #include <string_view>
 
@@ -15,5 +16,13 @@ namespace Config {
     constexpr inline std::size_t ALLOC_SIZE = 128;
     constexpr inline std::string_view NVM_DIR = "/mnt/pmem0/myrontsa/alloc_experiments_pools";
 }    // namespace Config
+
+using Clock = std::chrono::steady_clock;
+using Millis = std::chrono::milliseconds;
+using Micros = std::chrono::microseconds;
+struct Type {
+    char data[Config::ALLOC_SIZE]{};
+};
+inline constexpr std::size_t TypeSize = sizeof(Type);
 
 #endif
