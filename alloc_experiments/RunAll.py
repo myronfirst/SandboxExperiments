@@ -34,8 +34,7 @@ N_THREADS = [
     '24',
 ]
 
-LOGN_OPS = '6'
-UNIT = 'milliseconds'
+UNIT = 'microseconds'
 
 
 def main():
@@ -46,20 +45,21 @@ def main():
     subprocess.run(['make', 'clean'])
     subprocess.run(['make', '-j'])
     print(f'OPERATIONS: {OPERATIONS}')
-    print(f'LOGN_OPS: {LOGN_OPS}')
     print(f'N_THREADS: {N_THREADS}')
     for op in OPERATIONS:
         with open(f'{op[0]}_{op[1]}.csv', 'w') as f:
-            f.write(f'allocator,threads,{UNIT}\n')
+            f.write(f'allocator,threads,{UNIT},operations\n')
             for bench in BENCHES:
                 if op[1] == 'Alloc' and bench == './build/bench_pmem':
                     continue  # do not run Alloc operation with bench_pmem, it is erroneous
                 for n in N_THREADS:
-                    completedProc = subprocess.run([bench, n, LOGN_OPS, op[0], op[1]],
+                    completedProc = subprocess.run([bench, n, op[0], op[1]],
                                                    capture_output=True, env=my_env)
+                    lines = completedProc.stdout.splitlines()
                     allocator = Path(bench).name.replace('bench_', '')
-                    millis = int(completedProc.stdout.strip())
-                    f.write(f'{allocator},{n},{millis}\n')
+                    duration = int(lines[0])
+                    operations = int(lines[1])
+                    f.write(f'{allocator},{n},{duration},{operations}\n')
                     f.flush()
 
 

@@ -8,7 +8,7 @@
             "name": "Plot",
             "type": "debugpy",
             "request": "launch",
-            "cwd": "${workspaceFolder}/Plots",
+            "cwd": "${workspaceFolder}",
             "program": "Plot.py",
             "console": "integratedTerminal"
         },
@@ -26,7 +26,6 @@
             "program": "${workspaceFolder}/build/bench_default",
             "args": [
                 "1",
-                "7",
                 "None",
                 "Alloc"
             ],
@@ -51,7 +50,6 @@
             "program": "${workspaceFolder}/build/bench_malloc",
             "args": [
                 "1",
-                "7",
                 "None",
                 "Alloc"
             ],
@@ -76,7 +74,6 @@
             "program": "${workspaceFolder}/build/bench_jemalloc",
             "args": [
                 "1",
-                "7",
                 "None",
                 "Alloc"
             ],
@@ -101,7 +98,6 @@
             "program": "${workspaceFolder}/build/bench_vmem",
             "args": [
                 "1",
-                "7",
                 "None",
                 "Alloc"
             ],
@@ -126,7 +122,6 @@
             "program": "${workspaceFolder}/build/bench_vmmalloc",
             "args": [
                 "1",
-                "7",
                 "None",
                 "Alloc"
             ],
@@ -161,7 +156,6 @@
             "program": "${workspaceFolder}/build/bench_memkind",
             "args": [
                 "1",
-                "7",
                 "Block",
                 "Write"
             ],
@@ -186,7 +180,6 @@
             "program": "${workspaceFolder}/build/bench_pmemobj_alloc",
             "args": [
                 "1",
-                "7",
                 "None",
                 "Alloc"
             ],
@@ -211,7 +204,6 @@
             "program": "${workspaceFolder}/build/bench_make_persistent_atomic",
             "args": [
                 "1",
-                "8",
                 "Block",
                 "Read"
             ],
@@ -236,7 +228,6 @@
             "program": "${workspaceFolder}/build/bench_pmem",
             "args": [
                 "1",
-                "7",
                 "Block",
                 "Write"
             ],

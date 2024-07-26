@@ -6,7 +6,10 @@ import pathlib
 
 DATA_PATH_DEFAULT = 'Traces.csv'
 COMMENT_CHAR = '#'
-NUM_OPS = 10**6
+UNIT = {
+    'milliseconds': 10**3,
+    'microseconds': 10**6
+}
 
 DROP_MEASUREMENTS = 5
 
@@ -23,11 +26,12 @@ PALETTE_ORDER = [
 ]
 
 TRACE_FILES = [
-    'Alloc_All.csv',
-    'Block_Read.csv',
-    'Sparse_Read.csv',
-    'Block_Write.csv',
-    'Sparse_Write.csv',
+    'None_Alloc.csv',
+    # 'Alloc_All.csv',
+    # 'Block_Read.csv',
+    # 'Sparse_Read.csv',
+    # 'Block_Write.csv',
+    # 'Sparse_Write.csv',
 ]
 
 
@@ -48,11 +52,10 @@ def to_throughput(df, headers):
     Convert runtime to throughput
     '''
     throughput_header = 'Mops/second'
-    num_million_ops = NUM_OPS / 10**6
-    seconds = df['milliseconds'] / 10**3
-    # seconds = df['microseconds'] / 10**6
+    num_million_ops = df['operations'] / 10**6
+    seconds = df[headers[2]] / UNIT[headers[2]]
     df[throughput_header] = num_million_ops / seconds
-    headers[2] = throughput_header
+    headers = [headers[0], headers[1], throughput_header]
     return df, headers
 
 
