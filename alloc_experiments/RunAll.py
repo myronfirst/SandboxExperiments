@@ -34,13 +34,48 @@ N_THREADS = [
     '24',
 ]
 
+MIN_RUNS = 3
+MAX_RUNS = 10
+
 UNIT = 'microseconds'
 
 
-def main():
+def RepeatRun(args):
+    '''
+    Run up until MAX_RUNS times or until error margin of MIN_RUNS consecutive times is less than 2%
+    '''
     my_env = os.environ.copy()
     my_env['VMMALLOC_POOL_DIR'] = '/mnt/pmem0/myrontsa'
     my_env['VMMALLOC_POOL_SIZE'] = f'{1024 *1024*1024*32}'  # 32GB
+    stats = {'dur': [], 'ops': []}
+    retDurAvg = 0
+    retOpsAvg = 0
+    for i in range(MAX_RUNS):
+        completedProc = subprocess.run(args,
+                                       capture_output=True, env=my_env)
+        lines = completedProc.stdout.splitlines()
+        dur, ops = int(lines[0]), int(lines[1])
+        stats['dur'].append(dur)
+        stats['ops'].append(ops)
+        if i < MIN_RUNS:
+            continue
+        durWindow = [dur for dur in stats['dur'][i-MIN_RUNS:]]
+        durAvg = sum(durWindow) / len(durWindow)
+        errorMargin = sum(durWindow) / len(durWindow)
+        if (errorMargin < 0.02):
+            retDurAvg = durAvg
+            break
+    durWindowAll = [dur for dur in stats['dur']]
+    if retDurAvg == 0:
+        retDurAvg = sum(durWindowAll) / len(durWindowAll)
+    allocator = Path(args[0]).name.replace('bench_', '')
+    threads = args[1]
+    duration = retDurAvg
+    # operations = int(lines[1])
+    return allocator, threads, duration, operations
+
+
+def main():
 
     subprocess.run(['make', 'clean'])
     subprocess.run(['make', '-j'])
@@ -53,13 +88,9 @@ def main():
                 if op[1] == 'Alloc' and bench == './build/bench_pmem':
                     continue  # do not run Alloc operation with bench_pmem, it is erroneous
                 for n in N_THREADS:
-                    completedProc = subprocess.run([bench, n, op[0], op[1]],
-                                                   capture_output=True, env=my_env)
-                    lines = completedProc.stdout.splitlines()
-                    allocator = Path(bench).name.replace('bench_', '')
-                    duration = int(lines[0])
-                    operations = int(lines[1])
-                    f.write(f'{allocator},{n},{duration},{operations}\n')
+                    allocator, threads, duration, operations = RepeatRun(
+                        [bench, n, op[0], op[1]])
+                    f.write(f'{allocator},{threads},{duration},{operations}\n')
                     f.flush()
 
 
