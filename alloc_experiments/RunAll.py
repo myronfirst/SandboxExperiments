@@ -36,7 +36,7 @@ N_THREADS = [
     '24',
 ]
 
-MIN_RUNS = 3
+MIN_RUNS = 5
 MAX_RUNS = 10
 
 UNIT = 'microseconds'
@@ -115,7 +115,8 @@ def main():
                     f.write(f'{allocator},{threads},{duration},{operations}\n')
                     f.flush()
     print(f'MAX_RUNS_CASES:')
-    print(f'{MAX_RUNS_CASES}')
+    for case in MAX_RUNS_CASES:
+        print(f'{case}')
 
 
 if __name__ == '__main__':

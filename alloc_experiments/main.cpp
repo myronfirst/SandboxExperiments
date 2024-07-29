@@ -31,7 +31,7 @@ namespace {
     std::size_t NThreads;
     AllocOpType AllocOp;
     BenchOpType BenchOp;
-    constexpr std::size_t MaxWork = 16;
+    constexpr std::size_t MaxWork = 8;
     [[maybe_unused]] constexpr std::size_t L3Size = Pow10(6) * 36;
     constexpr std::size_t CacheSize = Pow10(6) * 32;
 

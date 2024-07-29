@@ -27,11 +27,10 @@ PALETTE_ORDER = [
 
 TRACE_FILES = [
     'None_Alloc.csv',
-    # 'Alloc_All.csv',
-    # 'Block_Read.csv',
-    # 'Sparse_Read.csv',
-    # 'Block_Write.csv',
-    # 'Sparse_Write.csv',
+    'Block_Read.csv',
+    'Block_Write.csv',
+    # 'None_Alloc_NoExtreme.csv',
+    # 'Block_Write_NoDRAM.csv',
 ]
 
 
