@@ -1,0 +1,9 @@
+{
+    "editor.formatOnSave": true,
+    "python.defaultInterpreterPath": "python3",
+    "files.associations": {
+        "*.alpha": "javascript",
+        "*.module": "php",
+        "cstddef": "cpp"
+    }
+}
