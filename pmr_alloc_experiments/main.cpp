@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <memory_resource>
+#include <new>
 #include <thread>
 #include <vector>
 
@@ -79,14 +80,14 @@ namespace {
         std::vector<std::thread> threads(N_THREADS);
         TimePoint begin;
         TimePoint end{};
-        Init();
+        // Init();
         for (auto tid = 0u; tid < threads.size(); ++tid) {
             threads.at(tid) = std::thread([tid, threadOps, &begin, &end]() {
                 PinThisThreadToCore(tid % N_THREADS);
-                ThreadInit();
+                // ThreadInit();
                 //BarrierWait
                 if (tid == 0) begin = Clock::now();
-                for (auto i = 0u; i < threadOps; ++i) Allocate(ALLOC_SIZE);
+                // for (auto i = 0u; i < threadOps; ++i) Allocate(ALLOC_SIZE);
                 //BarrierWait
                 if (tid == 0) end = Clock::now();
             });
@@ -95,6 +96,7 @@ namespace {
         std::cout << std::chrono::duration_cast<Millis>(end - begin).count() << "\n";
     }
 
+    /*
     class Allocator {
     public:
         virtual auto Init() -> void = 0;
@@ -125,6 +127,7 @@ namespace {
         auto Init() -> void*;
         auto Allocate(std::size_t bytes) -> void*;
     }    // namespace SyncPoolMBR
+    */
     auto FunStuff() -> void {
         using Clock = std::chrono::steady_clock;
         using Millis = std::chrono::milliseconds;
@@ -169,3 +172,16 @@ auto main() -> int {
     // AllocBenchmark();
     // Interface::DestroyPool();
 }
+
+//Bellow is just a code snippet
+#ifdef __cpp_lib_hardware_interference_size
+constexpr std::size_t CACHE_LINE_SIZE = std::hardware_constructive_interference_size;
+#else
+constexpr std::size_t CACHE_LINE_SIZE = 64;
+#endif
+struct ArrayElement {
+    alignas(CACHE_LINE_SIZE) std::size_t val{};
+    std::array<char, CACHE_LINE_SIZE - sizeof(val)> padding{};
+};
+std::array<ArrayElement, N_THREADS> AlignedElementsArray;
+std::size_t a = AlignedElementsArray.at(0).val;

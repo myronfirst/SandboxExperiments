@@ -4,6 +4,7 @@
     "files.associations": {
         "*.alpha": "javascript",
         "*.module": "php",
-        "cstddef": "cpp"
+        "cstddef": "cpp",
+        "new": "cpp"
     }
 }
