@@ -1,7 +1,7 @@
 DEBUG		:=	1
 
 SOURCES		:=	main.cpp
-LDLIBS		:=
+LDLIBS		:=	-lstdc++
 BUILDDIR	:=	build
 EXEC		:=	main
 
@@ -9,7 +9,7 @@ TARGET		:=	$(EXEC:%=$(BUILDDIR)/%)
 OBJECTS		:=	$(SOURCES:%.cpp=$(BUILDDIR)/%.o)
 
 
-CXX			:=	g++-11
+CXX			:=	gcc-12
 CXXFLAGS	:= \
 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wpedantic \
 -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual -Wconversion \
@@ -31,7 +31,7 @@ $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
 $(BUILDDIR)/%.o: %.cpp | $(BUILDDIR)
-	$(CXX) $(CXXFLAGS) -c -o $@ $< $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(BUILDDIR):
 	@mkdir -p $(BUILDDIR)

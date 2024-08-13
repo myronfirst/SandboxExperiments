@@ -5,6 +5,7 @@
         "*.alpha": "javascript",
         "*.module": "php",
         "cstddef": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "memory_resource": "cpp"
     }
 }
