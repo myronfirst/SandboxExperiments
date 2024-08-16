@@ -15,9 +15,9 @@ namespace {
     constexpr std::size_t N_THREADS = 8;
     constexpr std::size_t LOG2N_OPS = 22;
     constexpr std::size_t ALLOC_SIZE = 16;
-    constexpr std::size_t MBR_SIZE = 1u * 1024 * 1024 * 1024 * 2;
+    constexpr std::size_t MBR_SIZE = 1u * 1024 * 1024 * 128;
 
-    auto constexpr Pow(std::size_t base, std::size_t exp) -> std::size_t { return exp == 0 ? 1 : base * Pow(base, exp - 1); }
+    auto consteval Pow(std::size_t base, std::size_t exp) -> std::size_t { return exp == 0 ? 1 : base * Pow(base, exp - 1); }
     constexpr std::size_t Nops = Pow(2, LOG2N_OPS);
     constexpr std::size_t ThreadOps = Nops / N_THREADS;
     constexpr std::size_t MaxThreadOps = Pow(2, 14);

@@ -1,4 +1,4 @@
-DEBUG		:=	1
+DEBUG		:=	0
 
 SOURCES		:=	main.cpp
 LDLIBS		:=	-lstdc++
@@ -17,10 +17,15 @@ CXXFLAGS	:= \
 -Wlogical-op -Wnull-dereference -Wuseless-cast -Wdouble-promotion -Wformat=2 \
 -g3 -std=c++23
 
-ifeq ($(DEBUG),0)
-	CXXFLAGS += -O3 -DNDEBUG
-else
+ifeq ($(DEBUG),3)
+	CXXFLAGS += -O0 -fsanitize=thread
+else ifeq ($(DEBUG),2)
+	CXXFLAGS += -O0 -fsanitize=address,undefined,leak
+else ifeq ($(DEBUG),1)
 	CXXFLAGS += -O0
+	# CXXFLAGS += -O0 #-D_GLIBCXX_DEBUG_PEDANTIC
+else
+	CXXFLAGS += -O3 -DNDEBUG
 endif
 
 .PHONY: clean $(BUILDDIR)
