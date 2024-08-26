@@ -1,7 +1,7 @@
 DEBUG		:=	0
 
 SOURCES		:=	main.cpp
-LDLIBS		:=	-lstdc++
+LDLIBS		:=	-lstdc++ -pthread
 BUILDDIR	:=	build
 EXEC		:=	main
 
@@ -9,7 +9,7 @@ TARGET		:=	$(EXEC:%=$(BUILDDIR)/%)
 OBJECTS		:=	$(SOURCES:%.cpp=$(BUILDDIR)/%.o)
 
 
-CXX			:=	gcc-12
+CXX			:=	gcc-11
 CXXFLAGS	:= \
 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wpedantic \
 -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual -Wconversion \
