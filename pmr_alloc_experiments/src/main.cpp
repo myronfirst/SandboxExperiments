@@ -1,3 +1,4 @@
+#include <jemalloc/jemalloc.h>
 #include <array>
 #include <barrier>
 #include <cassert>
@@ -10,13 +11,13 @@
 #include <new>
 #include <thread>
 #include <vector>
-#include <jemalloc/jemalloc.h>
 extern "C" {
 #include <pool.h>
 }
 
 #undef CACHE_LINE_SIZE
 namespace {
+    std::size_t threadsNum;
     constexpr std::size_t N_THREADS = 96;
     constexpr std::size_t LOG2N_OPS = 22;
     constexpr std::size_t ALLOC_SIZE = 16;
@@ -65,18 +66,19 @@ namespace {
     class NewDeleteAllocator : public Allocator {
     private:
         std::pmr::polymorphic_allocator<> allocator{ std::pmr::new_delete_resource() };
+
     public:
-        NewDeleteAllocator() {name = "NewDeleteAllocator";}
+        NewDeleteAllocator() { name = "NewDeleteAllocator"; }
         auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* override { return allocator.allocate_bytes(bytes); }
     };
-    
+
     class SharedPoolHeapAllocator : public Allocator {
     private:
         std::pmr::synchronized_pool_resource pool{ std::pmr::new_delete_resource() };
         std::pmr::polymorphic_allocator<> allocator{ &pool };
 
     public:
-        SharedPoolHeapAllocator() {name = "SharedPoolHeapAllocator";}
+        SharedPoolHeapAllocator() { name = "SharedPoolHeapAllocator"; }
         auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* override {
             // const auto opts = pool.options();
             // std::cout << "max_blocks_per_chunk: " << opts.max_blocks_per_chunk << "\n";
@@ -84,7 +86,7 @@ namespace {
             return allocator.allocate_bytes(bytes);
         }
     };
-    
+
     class SharedPoolBufferAllocator : public Allocator {
     private:
         std::array<std::byte, MBR_SIZE> buffer{};
@@ -93,63 +95,82 @@ namespace {
         std::pmr::polymorphic_allocator<> allocator{ &pool };
 
     public:
-        SharedPoolBufferAllocator() {name = "SharedPoolBufferAllocator";}
+        SharedPoolBufferAllocator() { name = "SharedPoolBufferAllocator"; }
         auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* override { return allocator.allocate_bytes(bytes); }
     };
-    
+
     class ThreadPoolHeapAllocator : public Allocator {
     private:
         struct alignas(CACHE_LINE_SIZE) Element {
             std::pmr::unsynchronized_pool_resource pool{ std::pmr::new_delete_resource() };
             std::pmr::polymorphic_allocator<> allocator{ &pool };
         };
-        std::array<Element, N_THREADS> allocators;
+        // std::array<Element, N_THREADS> allocators;
+        std::unique_ptr<Element[]> allocators;
 
     public:
-        ThreadPoolHeapAllocator() {name = "ThreadPoolHeapAllocator";}
-        auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* override { return allocators.at(tid).allocator.allocate_bytes(bytes); }
+        ThreadPoolHeapAllocator() {
+            allocators = std::make_unique<Element[]>(threadsNum);
+            name = "ThreadPoolHeapAllocator";
+        }
+        auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* override { return allocators[tid].allocator.allocate_bytes(bytes); }
     };
-    
+
     class ThreadPoolBufferAllocator : public Allocator {
     private:
         struct alignas(CACHE_LINE_SIZE) Element {
-            std::array<std::byte, MBR_SIZE / N_THREADS> buffer{};
-            std::pmr::monotonic_buffer_resource mbr{ buffer.data(), buffer.size() * sizeof(std::byte) };
-            std::pmr::unsynchronized_pool_resource pool{ &mbr };
-            std::pmr::polymorphic_allocator<> allocator{ &pool };
+            std::unique_ptr<std::byte[]> buffer;
+            std::pmr::monotonic_buffer_resource mbr;
+            std::pmr::unsynchronized_pool_resource pool;
+            std::pmr::polymorphic_allocator<> allocator;
+            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) }, mbr{ buffer.get(), MBR_SIZE / threadsNum }, pool{ &mbr }, allocator{ &pool } {}
         };
-        std::array<Element, N_THREADS> allocators;
+        std::unique_ptr<Element[]> allocators;
 
     public:
-        ThreadPoolBufferAllocator() {name = "ThreadPoolBufferAllocator";}
-        auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* override { return allocators.at(tid).allocator.allocate_bytes(bytes); }
+        ThreadPoolBufferAllocator() {
+            allocators = std::make_unique<Element[]>(threadsNum);
+            name = "ThreadPoolBufferAllocator";
+        }
+        auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* override { return allocators[tid].allocator.allocate_bytes(bytes); }
     };
-    
+
     class ThreadBufferAllocator : public Allocator {
     private:
         struct alignas(CACHE_LINE_SIZE) Element {
-            std::array<std::byte, MBR_SIZE / N_THREADS> buffer{};
-            std::pmr::monotonic_buffer_resource mbr{ buffer.data(), buffer.size() * sizeof(std::byte) };
-            std::pmr::polymorphic_allocator<> allocator{ &mbr };
+            // std::array<std::byte, MBR_SIZE / N_THREADS> buffer{};
+            std::unique_ptr<std::byte[]> buffer;
+            std::pmr::monotonic_buffer_resource mbr;
+            std::pmr::polymorphic_allocator<> allocator;
+            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) }, mbr{ buffer.get(), MBR_SIZE / threadsNum }, allocator(&mbr) {}
         };
-        std::array<Element, N_THREADS> allocators;
+        // std::array<Element, N_THREADS> allocators;
+        std::unique_ptr<Element[]> allocators;
 
     public:
-        ThreadBufferAllocator() {name = "ThreadBufferAllocator";}
-        auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* override { return allocators.at(tid).allocator.allocate_bytes(bytes); }
+        ThreadBufferAllocator() {
+            allocators = std::make_unique<Element[]>(threadsNum);
+            name = "ThreadBufferAllocator";
+        }
+        auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* override { return allocators[tid].allocator.allocate_bytes(bytes); }
     };
 
     class JemallocAllocator : public Allocator {
     public:
-        JemallocAllocator() {name = "JemallocAllocator";}
+        JemallocAllocator() { name = "JemallocAllocator"; }
         auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* override { return je_malloc(bytes); }
     };
-    
+
     class PoolAllocator : public Allocator {
     private:
-        std::array<SynchPoolStruct, N_THREADS> pools CACHE_ALIGN;
+        std::unique_ptr<SynchPoolStruct[]> pools CACHE_ALIGN;
+
     public:
-        PoolAllocator() {for(SynchPoolStruct pool CACHE_ALIGN : pools) synchInitPool(&pool, ALLOC_SIZE); name = "PoolAllocator";}
+        PoolAllocator() {
+            pools = std::make_unique<SynchPoolStruct[]>(threadsNum);
+            for (int i = 0; i < threadsNum; i++) synchInitPool(&(pools[i]), ALLOC_SIZE);
+            name = "PoolAllocator";
+        }
         auto AllocateBytes([[maybe_unused]] std::size_t bytes, std::size_t tid) -> void* override { return synchAllocObj(&(pools[tid])); }
     };
 
@@ -175,7 +196,8 @@ namespace {
             });
         }
         for (auto& t : threads) t.join();
-        std::cout << allocator->name << std::endl << std::chrono::duration_cast<Millis>(end - begin).count() << " ms\n";
+        std::cout << allocator->name << std::endl
+                  << std::chrono::duration_cast<Millis>(end - begin).count() << " ms\n";
     }
 
     auto help(std::string prog) -> void {
@@ -189,14 +211,14 @@ enum {
     THREADS
 };
 
-auto main(int argc, char *argv[]) -> int {
+auto main(int argc, char* argv[]) -> int {
     if (argc < 3) help(argv[0]);
-    
+
     auto allocator = std::stoi(argv[ALLOCATOR]);
-    auto threadsNum = std::stoi(argv[THREADS]);
+    threadsNum = std::stoi(argv[THREADS]);
 
     std::pmr::set_default_resource(std::pmr::null_memory_resource());
-    
+
     std::vector<std::unique_ptr<Allocator>> allocators;
     allocators.push_back(std::make_unique<NewDeleteAllocator>());
     allocators.push_back(std::make_unique<SharedPoolHeapAllocator>());
@@ -207,9 +229,9 @@ auto main(int argc, char *argv[]) -> int {
     allocators.push_back(std::make_unique<JemallocAllocator>());
     allocators.push_back(std::make_unique<PoolAllocator>());
 
-    if (allocator > allocators.size()-1) return EXIT_FAILURE;
+    if (allocator > allocators.size() - 1) return EXIT_FAILURE;
 
-    Benchmark( allocators.at( allocator ).get() , threadsNum );
+    Benchmark(allocators.at(allocator).get(), threadsNum);
 
     // std::unique_ptr<Allocator> allocator{};
     // allocator = std::make_unique<NewDeleteAllocator>();
