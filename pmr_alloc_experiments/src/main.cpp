@@ -163,7 +163,7 @@ namespace {
         std::barrier clockBarrier{ numberOfThreads };
         for (auto tid = 0u; tid < threads.size(); ++tid) {
             threads.at(tid) = std::thread([tid, allocator, numberOfThreads, &begin, &end, &clockBarrier]() {
-                PinThisThreadToCore(tid % numberOfThreads);
+                PinThisThreadToCore(tid % 96);
                 clockBarrier.arrive_and_wait();
                 if (tid == 0) begin = Clock::now();
                 for (auto i = 0u; i < ThreadOps; ++i) {
