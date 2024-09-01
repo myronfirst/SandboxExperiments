@@ -178,7 +178,7 @@ namespace {
 
     auto Benchmark(Allocator* allocator, int numberOfThreads) -> void {
         using Clock = std::chrono::steady_clock;
-        using Millis = std::chrono::milliseconds;
+        using Nano = std::chrono::nanoseconds;
         using TimePoint = Clock::time_point;
         std::vector<std::thread> threads(numberOfThreads);
         TimePoint begin{};
