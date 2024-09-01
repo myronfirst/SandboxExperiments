@@ -123,7 +123,8 @@ namespace {
             std::pmr::monotonic_buffer_resource mbr;
             std::pmr::unsynchronized_pool_resource pool;
             std::pmr::polymorphic_allocator<> allocator;
-            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) }, mbr{ buffer.get(), MBR_SIZE / threadsNum }, pool{ &mbr }, allocator{ &pool } {}
+            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) }, mbr{ buffer.get(), MBR_SIZE / threadsNum },
+            pool{ &mbr }, allocator{ &pool } {}
         };
         std::unique_ptr<Element[]> allocators;
 
@@ -142,7 +143,8 @@ namespace {
             std::unique_ptr<std::byte[]> buffer;
             std::pmr::monotonic_buffer_resource mbr;
             std::pmr::polymorphic_allocator<> allocator;
-            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) }, mbr{ buffer.get(), MBR_SIZE / threadsNum }, allocator(&mbr) {}
+            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) }, 
+            mbr{ buffer.get(), MBR_SIZE / threadsNum }, allocator(&mbr) {}
         };
         // std::array<Element, N_THREADS> allocators;
         std::unique_ptr<Element[]> allocators;
@@ -197,7 +199,7 @@ namespace {
         }
         for (auto& t : threads) t.join();
         std::cout << allocator->name << std::endl
-                  << std::chrono::duration_cast<Millis>(end - begin).count() << " ms\n";
+                  << std::chrono::duration_cast<Nano>(end - begin).count() << " ns\n";
     }
 
     auto help(std::string prog) -> void {
