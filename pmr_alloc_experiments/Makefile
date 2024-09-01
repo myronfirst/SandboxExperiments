@@ -1,12 +1,15 @@
 DEBUG		:=	0
 
-SOURCES		:=	main.cpp
+SOURCE_DIR  :=  src
+
+SOURCES		:=	$(wildcard $(SOURCE_DIR)/*.c) $(wildcard $(SOURCE_DIR)/*.cpp)
 LDLIBS		:=	-lstdc++ -pthread
 BUILDDIR	:=	build
 EXEC		:=	main
 
 TARGET		:=	$(EXEC:%=$(BUILDDIR)/%)
-OBJECTS		:=	$(SOURCES:%.cpp=$(BUILDDIR)/%.o)
+OBJECTS := $(SOURCES:$(SOURCE_DIR)/%.cpp=$(BUILDDIR)/%.o)
+OBJECTS := $(OBJECTS:$(SOURCE_DIR)/%.c=$(BUILDDIR)/%.o)
 
 
 CXX			:=	gcc-11
@@ -15,7 +18,10 @@ CXXFLAGS	:= \
 -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual -Wconversion \
 -Wsign-conversion -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches \
 -Wlogical-op -Wnull-dereference -Wuseless-cast -Wdouble-promotion -Wformat=2 \
--g3 -std=c++23
+-g3 -Iincludes -DSYNCH_DISABLE_PWBS -DSYNCH_DISABLE_PSYNCS
+
+JE 			:= -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
+
 
 ifeq ($(DEBUG),3)
 	CXXFLAGS += -O0 -fsanitize=thread
@@ -33,10 +39,14 @@ endif
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS) $(JE)
 
-$(BUILDDIR)/%.o: %.cpp | $(BUILDDIR)
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+$(BUILDDIR)/%.o: $(SOURCE_DIR)/%.cpp | $(BUILDDIR)
+	$(CXX) $(CXXFLAGS) -std=c++23 -c -o $@ $<
+
+$(BUILDDIR)/%.o: $(SOURCE_DIR)/%.c | $(BUILDDIR)
+	$(CXX) $(CXXFLAGS) -std=gnu89 -c -o $@ $<
+
 
 $(BUILDDIR):
 	@mkdir -p $(BUILDDIR)
