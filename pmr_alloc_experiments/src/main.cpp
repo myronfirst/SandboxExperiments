@@ -207,7 +207,7 @@ auto main(int argc, char *argv[]) -> int {
     allocators.push_back(std::make_unique<JemallocAllocator>());
     allocators.push_back(std::make_unique<PoolAllocator>());
 
-    if (threadsNum > allocators.size()-1) return EXIT_FAILURE;
+    if (allocator > allocators.size()-1) return EXIT_FAILURE;
 
     Benchmark( allocators.at( allocator ).get() , threadsNum );
 
