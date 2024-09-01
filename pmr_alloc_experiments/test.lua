@@ -1,5 +1,3 @@
--- You probably don't have a lua intepreter installed,
--- so for your convinience I've included a compiled version of the script test.exe
 
 os.execute "make clean ; make"
 
