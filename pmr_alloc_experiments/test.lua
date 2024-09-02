@@ -28,7 +28,7 @@ for allocatorIndex = 0, numberOfAllocators - 1 do
         end
         outputFile:write("\n\t\t},\n")
     end
-    outputFile:write("\t},\n\tallocator = ", allocatorName .. "\n}\n")
+    outputFile:write("\t},\n\tallocator = '", allocatorName .. "'\n}\n")
 end
 
 outputFile:close()
