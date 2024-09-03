@@ -1,14 +1,12 @@
-#! lua_interpreter/lua
+#! ../lua_interpreter/lua
 
--- Run this from the pmr_alloc_experiments directory
-
-os.execute "make clean ; make"
+os.execute "make -C ../ clean ; make -C ../"
 
 os.execute "clear"
 
 threadsTable = { 1, 4, 16, 32, 48, 64, 96, 128 }
 
-executable = "./build/main"
+executable = "../build/main"
 
 numberOfAllocators = 8
 
