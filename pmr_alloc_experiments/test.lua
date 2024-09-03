@@ -6,7 +6,7 @@ os.execute "make clean ; make"
 
 os.execute "clear"
 
-threadsTable = { 1, 4, 16, 32, 48, --[[ 64, 96, 128]] }
+threadsTable = { 1, 4, 16, 32, 48, 64, 96, 128 }
 
 executable = "./build/main"
 
@@ -14,8 +14,9 @@ numberOfAllocators = 8
 
 outputFile = io.open("results.lua", "w")
 
-for allocatorIndex = 0, numberOfAllocators - 1 do
+outputFile:write("threadConfigurations = " .. #threadsTable .. '\n')
 
+for allocatorIndex = 0, numberOfAllocators - 1 do
     local allocatorName
     outputFile:write("\nentry {\n\truns = {\n")
     for _, threads in ipairs(threadsTable) do
