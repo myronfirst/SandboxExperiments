@@ -19,13 +19,14 @@ extern "C" {
 namespace {
     std::size_t threadsNum;
     constexpr std::size_t N_THREADS = 96;
-    constexpr std::size_t LOG2N_OPS = 22;
+    constexpr std::size_t LOG2N_OPS = 19;
     constexpr std::size_t ALLOC_SIZE = 16;
     constexpr std::size_t MBR_SIZE = 1u * 1024 * 1024 * 128;
+    std::pmr::pool_options opts{ .max_blocks_per_chunk = 1024 * 1024 * 4 };
 
     auto consteval Pow(std::size_t base, std::size_t exp) -> std::size_t { return exp == 0 ? 1 : base * Pow(base, exp - 1); }
     constexpr std::size_t Nops = Pow(2, LOG2N_OPS);
-    constexpr std::size_t ThreadOps = Nops / N_THREADS;
+    std::size_t ThreadOps;
     constexpr std::size_t MaxThreadOps = Pow(2, 14);
     constexpr std::size_t MaxAllocSize = Pow(2, 12);
     // static_assert(ThreadOps <= MaxThreadOps);
@@ -74,7 +75,7 @@ namespace {
 
     class SharedPoolHeapAllocator : public Allocator {
     private:
-        std::pmr::synchronized_pool_resource pool{ std::pmr::new_delete_resource() };
+        std::pmr::synchronized_pool_resource pool{ opts, std::pmr::new_delete_resource() };
         std::pmr::polymorphic_allocator<> allocator{ &pool };
 
     public:
@@ -91,7 +92,7 @@ namespace {
     private:
         std::array<std::byte, MBR_SIZE> buffer{};
         std::pmr::monotonic_buffer_resource mbr{ buffer.data(), buffer.size() * sizeof(std::byte) };
-        std::pmr::synchronized_pool_resource pool{ &mbr };
+        std::pmr::synchronized_pool_resource pool{ opts, &mbr };
         std::pmr::polymorphic_allocator<> allocator{ &pool };
 
     public:
@@ -102,7 +103,7 @@ namespace {
     class ThreadPoolHeapAllocator : public Allocator {
     private:
         struct alignas(CACHE_LINE_SIZE) Element {
-            std::pmr::unsynchronized_pool_resource pool{ std::pmr::new_delete_resource() };
+            std::pmr::unsynchronized_pool_resource pool{ opts, std::pmr::new_delete_resource() };
             std::pmr::polymorphic_allocator<> allocator{ &pool };
         };
         // std::array<Element, N_THREADS> allocators;
@@ -123,8 +124,7 @@ namespace {
             std::pmr::monotonic_buffer_resource mbr;
             std::pmr::unsynchronized_pool_resource pool;
             std::pmr::polymorphic_allocator<> allocator;
-            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) }, mbr{ buffer.get(), MBR_SIZE / threadsNum },
-            pool{ &mbr }, allocator{ &pool } {}
+            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) }, mbr{ buffer.get(), MBR_SIZE / threadsNum }, pool{ opts, &mbr }, allocator{ &pool } {}
         };
         std::unique_ptr<Element[]> allocators;
 
@@ -143,8 +143,9 @@ namespace {
             std::unique_ptr<std::byte[]> buffer;
             std::pmr::monotonic_buffer_resource mbr;
             std::pmr::polymorphic_allocator<> allocator;
-            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) }, 
-            mbr{ buffer.get(), MBR_SIZE / threadsNum }, allocator(&mbr) {}
+            Element() : buffer{ std::make_unique<std::byte[]>(MBR_SIZE / threadsNum) },
+                        mbr{ buffer.get(), MBR_SIZE / threadsNum },
+                        allocator(&mbr) {}
         };
         // std::array<Element, N_THREADS> allocators;
         std::unique_ptr<Element[]> allocators;
@@ -214,10 +215,22 @@ enum {
 };
 
 auto main(int argc, char* argv[]) -> int {
-    if (argc < 3) help(argv[0]);
+    if (argc < 3) {
+        //     std::pmr::synchronized_pool_resource pool{opts};
+        //     std::pmr::polymorphic_allocator alloc{&pool};
+        //     std::cout << pool.options().max_blocks_per_chunk << '\n';
+        //     std::size_t a = (std::size_t)alloc.allocate_bytes(1);
+        //     std::size_t b = (std::size_t)alloc.allocate_bytes(1);
+        //     std::size_t c = b-a;
+        //     std::cout << c << '\n';
+        help(argv[0]);
+        return EXIT_FAILURE;
+    }
 
     auto allocator = std::stoi(argv[ALLOCATOR]);
     threadsNum = std::stoi(argv[THREADS]);
+
+    ThreadOps = Nops / threadsNum;
 
     std::pmr::set_default_resource(std::pmr::null_memory_resource());
 
