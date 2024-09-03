@@ -19,9 +19,9 @@ extern "C" {
 namespace {
     std::size_t threadsNum;
     constexpr std::size_t N_THREADS = 96;
-    constexpr std::size_t LOG2N_OPS = 19;
+    constexpr std::size_t LOG2N_OPS = 18;
     constexpr std::size_t ALLOC_SIZE = 16;
-    constexpr std::size_t MBR_SIZE = 1u * 1024 * 1024 * 128;
+    constexpr std::size_t MBR_SIZE = 1u * 1024 * 1024 * 256;
     std::pmr::pool_options opts{ .max_blocks_per_chunk = 1024 * 1024 * 4 };
 
     auto consteval Pow(std::size_t base, std::size_t exp) -> std::size_t { return exp == 0 ? 1 : base * Pow(base, exp - 1); }
@@ -185,13 +185,20 @@ namespace {
         TimePoint begin{};
         TimePoint end{};
         std::barrier clockBarrier{ numberOfThreads };
+
         for (auto tid = 0u; tid < threads.size(); ++tid) {
             threads.at(tid) = std::thread([tid, allocator, numberOfThreads, &begin, &end, &clockBarrier]() {
                 PinThisThreadToCore(tid % 96);
                 clockBarrier.arrive_and_wait();
                 if (tid == 0) begin = Clock::now();
                 for (auto i = 0u; i < ThreadOps; ++i) {
-                    char* p = static_cast<char*>(allocator->AllocateBytes(ALLOC_SIZE, tid));
+                    char * volatile p = static_cast<char*volatile>(allocator->AllocateBytes(16, tid));
+                    *p = 1;
+                    p = static_cast<char*volatile>(allocator->AllocateBytes(64, tid));
+                    *p = 1;
+                    p = static_cast<char*volatile>(allocator->AllocateBytes(128, tid));
+                    *p = 1;
+                    p = static_cast<char*volatile>(allocator->AllocateBytes(256, tid));
                     *p = 1;
                 }
                 clockBarrier.arrive_and_wait();
