@@ -6,7 +6,7 @@
 
 #define POOL_BLOCK_METADATA_SIZE sizeof(SynchPoolBlockMetadata)
 
-static const uint32_t BLOCK_SIZE = 4096 * 8192;
+static const uint32_t BLOCK_SIZE = 524287 * 16;
 
 static void *get_new_block(SynchPoolStruct *pool) {
     uint32_t obj_size;
