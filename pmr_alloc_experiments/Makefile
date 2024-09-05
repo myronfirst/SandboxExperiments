@@ -1,4 +1,6 @@
 DEBUG		:=	1
+PARAMS		:= -UPARAM_N_THREADS -UPARAM_ALLOCATOR
+# PARAMS		:= -DPARAM_N_THREADS=96 -DPARAM_ALLOCATOR=NewDeleteAllocator
 
 SOURCE_DIR  :=  src
 BUILDDIR	:=	build
@@ -38,7 +40,7 @@ clean:
 	rm -fd $(BUILDDIR)
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(CCFLAGS) -o $@ $^ $(LDLIBS)
+	$(CC) $(CCFLAGS) $(PARAMS) -o $@ $^ $(LDLIBS)
 
 $(BUILDDIR):
 	@mkdir -p $(BUILDDIR)
@@ -46,7 +48,7 @@ $(BUILDDIR):
 
 
 $(BUILDDIR)/main.o: $(SOURCE_DIR)/main.cpp | $(BUILDDIR)
-	$(CC) $(CCFLAGS) -c -o $@ $<
+	$(CC) $(CCFLAGS) $(PARAMS) -c -o $@ $<
 
 $(BUILDDIR)/synch_pool.o: $(SOURCE_DIR)/synch_pool.cpp | $(BUILDDIR)
-	$(CC) $(CCFLAGS) -Wno-old-style-cast -c -o $@ $<
+	$(CC) $(CCFLAGS) $(PARAMS) -Wno-old-style-cast -c -o $@ $<

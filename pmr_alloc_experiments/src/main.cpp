@@ -7,19 +7,21 @@
 #include <thread>
 
 #include <jemalloc/jemalloc.h>
-extern "C" {
 #include "synch_pool.h"
-}
 
-#define PARAM_N_THREADS 96
-#define PARAM_ALLOCATOR ArenaBufferAllocator
+#ifndef PARAM_N_THREADS
+#define PARAM_N_THREADS 8
+#endif
+#ifndef PARAM_ALLOCATOR
+#define PARAM_ALLOCATOR SynchPoolAllocator
+#endif
 
 namespace {
     auto consteval Pow(std::size_t base, std::size_t exp) -> std::size_t { return exp == 0 ? 1 : base * Pow(base, exp - 1); }
 
     constexpr std::size_t N_THREADS = PARAM_N_THREADS;
     constexpr std::size_t ALLOC_SIZE = 16;
-    constexpr std::size_t LOG2N_OPS = 18;
+    constexpr std::size_t LOG2N_OPS = 10;
     constexpr std::size_t MAX_BLOCKS_PER_CHUNK = Pow(2, LOG2N_OPS + 1);
     constexpr std::size_t MBR_SIZE = ALLOC_SIZE * MAX_BLOCKS_PER_CHUNK;
 
@@ -146,9 +148,9 @@ namespace {
         }
     };
 
-    class JemallocAllocator : public Allocator {
+    class JeMallocAllocator : public Allocator {
     public:
-        JemallocAllocator() { name = "JemallocAllocator"; }
+        JeMallocAllocator() { name = "JeMallocAllocator"; }
         auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* override {
             return je_malloc(bytes);
         }
@@ -174,10 +176,12 @@ namespace {
         }
     };
 
-    auto Benchmark(Allocator* allocator) -> void {
+    auto Benchmark(auto* allocator) -> void {
         using Clock = std::chrono::steady_clock;
-        using Nano = std::chrono::nanoseconds;
+        using Unit = std::chrono::milliseconds;
         using TimePoint = Clock::time_point;
+        constexpr std::size_t NOps = Pow(2, LOG2N_OPS);
+        constexpr std::size_t threadOps = NOps / N_THREADS;
         std::array<std::thread, N_THREADS> threads{};
         TimePoint begin{};
         TimePoint end{};
@@ -186,33 +190,33 @@ namespace {
         for (auto tid = 0u; tid < threads.size(); ++tid) {
             threads.at(tid) = std::thread([tid, allocator, &begin, &end, &clockBarrier]() {
                 PinThisThreadToCore(tid % N_THREADS);
-                constexpr std::size_t threadOps = Pow(2, LOG2N_OPS) / N_THREADS;
                 clockBarrier.arrive_and_wait();
                 if (tid == 0) begin = Clock::now();
                 for (auto i = 0u; i < threadOps; ++i) {
-                    char* volatile p = static_cast<char* volatile>(allocator->AllocateBytes(16, tid));
+                    char* p = static_cast<char*>(allocator->AllocateBytes(ALLOC_SIZE, tid));
                     *p = 1;
-                    p = static_cast<char* volatile>(allocator->AllocateBytes(64, tid));
-                    *p = 1;
-                    p = static_cast<char* volatile>(allocator->AllocateBytes(128, tid));
-                    *p = 1;
-                    p = static_cast<char* volatile>(allocator->AllocateBytes(256, tid));
-                    *p = 1;
+                    // char* volatile p = static_cast<char* volatile>(allocator->AllocateBytes(16, tid));
+                    // *p = 1;
+                    // p = static_cast<char* volatile>(allocator->AllocateBytes(64, tid));
+                    // *p = 1;
+                    // p = static_cast<char* volatile>(allocator->AllocateBytes(128, tid));
+                    // *p = 1;
+                    // p = static_cast<char* volatile>(allocator->AllocateBytes(256, tid));
+                    // *p = 1;
                 }
                 clockBarrier.arrive_and_wait();
                 if (tid == 0) end = Clock::now();
             });
         }
         for (auto& t : threads) t.join();
-        std::cout << allocator->name << std::endl
-                  << std::chrono::duration_cast<Nano>(end - begin).count() << " ns\n";
+        std::cout << std::chrono::duration_cast<Unit>(end - begin).count() << "\n"
+                  << NOps << "\n";
     }
 }    // namespace
 
 auto main() -> int {
-    std::unique_ptr<Allocator> allocator{};
 #ifdef PARAM_ALLOCATOR
-    allocator = std::make_unique<PARAM_ALLOCATOR>();
+    std::unique_ptr allocator = std::make_unique<PARAM_ALLOCATOR>();
 #else
 #error "PARAM_ALLOCATOR not defined"
 #endif
