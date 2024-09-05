@@ -1,57 +1,52 @@
-DEBUG		:=	0
+DEBUG		:=	1
 
 SOURCE_DIR  :=  src
-
-SOURCES		:=	$(wildcard $(SOURCE_DIR)/*.c) $(wildcard $(SOURCE_DIR)/*.cpp)
-LDLIBS		:=	-lstdc++ -pthread
 BUILDDIR	:=	build
 EXEC		:=	main
+LDLIBS		:=	-lstdc++ -pthread $(shell jemalloc-config --libdir)/libjemalloc.a $(shell jemalloc-config --libs)
 
+SOURCES		:=	$(wildcard $(SOURCE_DIR)/*.cpp)
 TARGET		:=	$(EXEC:%=$(BUILDDIR)/%)
-OBJECTS := $(SOURCES:$(SOURCE_DIR)/%.cpp=$(BUILDDIR)/%.o)
-OBJECTS := $(OBJECTS:$(SOURCE_DIR)/%.c=$(BUILDDIR)/%.o)
+OBJECTS		:=	$(SOURCES:$(SOURCE_DIR)/%.cpp=$(BUILDDIR)/%.o)
 
-
-CXX			:=	gcc-11
-CXXFLAGS	:= \
+CC			:=	gcc-11
+CCFLAGS		:= \
 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wpedantic \
 -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual -Wconversion \
 -Wsign-conversion -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches \
 -Wlogical-op -Wnull-dereference -Wuseless-cast -Wdouble-promotion -Wformat=2 \
--g3 -Iincludes -DSYNCH_DISABLE_PWBS -DSYNCH_DISABLE_PSYNCS
-
-JE 			:= -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
-
+-g3 -std=c++23
 
 ifeq ($(DEBUG),3)
-	CXXFLAGS += -O0 -fsanitize=thread
+	CCFLAGS += -O0 -fsanitize=thread
 else ifeq ($(DEBUG),2)
-	CXXFLAGS += -O0 -fsanitize=address,undefined,leak
+	CCFLAGS += -O0 -fsanitize=address,undefined,leak
 else ifeq ($(DEBUG),1)
-	CXXFLAGS += -O0
-	# CXXFLAGS += -O0 #-D_GLIBCXX_DEBUG_PEDANTIC
+	CCFLAGS += -O0
+	# CCFLAGS += -O0 #-D_GLIBCXX_DEBUG_PEDANTIC
 else
-	CXXFLAGS += -O3 -DNDEBUG
+	CCFLAGS += -O3 -DNDEBUG
 endif
 
 .PHONY: clean $(BUILDDIR)
 
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS) $(JE)
-
-$(BUILDDIR)/%.o: $(SOURCE_DIR)/%.cpp | $(BUILDDIR)
-	$(CXX) $(CXXFLAGS) -std=c++23 -c -o $@ $<
-
-$(BUILDDIR)/%.o: $(SOURCE_DIR)/%.c | $(BUILDDIR)
-	$(CXX) $(CXXFLAGS) -std=gnu89 -c -o $@ $<
-
-
-$(BUILDDIR):
-	@mkdir -p $(BUILDDIR)
-
 clean:
 	rm -f $(OBJECTS)
 	rm -f $(TARGET)
 	rm -fd $(BUILDDIR)
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(CCFLAGS) -o $@ $^ $(LDLIBS)
+
+$(BUILDDIR):
+	@mkdir -p $(BUILDDIR)
+
+
+
+$(BUILDDIR)/main.o: $(SOURCE_DIR)/main.cpp | $(BUILDDIR)
+	$(CC) $(CCFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/synch_pool.o: $(SOURCE_DIR)/synch_pool.cpp | $(BUILDDIR)
+	$(CC) $(CCFLAGS) -Wno-old-style-cast -c -o $@ $<
