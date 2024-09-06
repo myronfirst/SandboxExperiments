@@ -16,11 +16,14 @@
 #endif
 #ifndef PARAM_ALLOC_SIZES
 #define PARAM_ALLOC_SIZES \
-    { 16, 32, 64, 128, 256 }
-// { 16 }
+    { 16 }
+// { 16, 32, 64, 128, 256 }
 #endif
 #ifndef PARAM_ALLOCATOR
-#define PARAM_ALLOCATOR SyncPoolBufferAllocator
+#define PARAM_ALLOCATOR NewDeleteAllocator
+#endif
+#ifndef PARAM_ENABLE_DEALLOCATE
+#define PARAM_ENABLE_DEALLOCATE true
 #endif
 
 namespace {
@@ -29,7 +32,9 @@ namespace {
 
     constexpr std::size_t N_THREADS = PARAM_N_THREADS;
     constexpr auto ALLOC_SIZES = std::to_array<std::size_t>(PARAM_ALLOC_SIZES);
-    constexpr std::size_t LOG2N_OPS = 24;
+    constexpr bool ENABLE_DEALLOCATE = PARAM_ENABLE_DEALLOCATE;
+    // constexpr std::size_t LOG2N_OPS = 24;
+    constexpr std::size_t LOG2N_OPS = 16;
 
     constexpr std::size_t MAX_BLOCKS_PER_CHUNK = Pow(2, LOG2N_OPS + 1);
     constexpr std::size_t MBR_SIZE = Sum(ALLOC_SIZES) * MAX_BLOCKS_PER_CHUNK;
@@ -65,6 +70,9 @@ namespace {
         auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* {
             return allocator.allocate_bytes(bytes);
         }
+        auto DeallocateBytes(void* p, std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void {
+            allocator.deallocate_bytes(p, bytes);
+        }
     };
 
     class SyncPoolHeapAllocator {
@@ -79,6 +87,9 @@ namespace {
         }
         auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* {
             return allocator.allocate_bytes(bytes);
+        }
+        auto DeallocateBytes(void* p, std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void {
+            allocator.deallocate_bytes(p, bytes);
         }
     };
 
@@ -97,6 +108,9 @@ namespace {
         }
         auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* {
             return allocator.allocate_bytes(bytes);
+        }
+        auto DeallocateBytes(void* p, std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void {
+            allocator.deallocate_bytes(p, bytes);
         }
     };
 
@@ -117,6 +131,9 @@ namespace {
         auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* {
             return arenas.at(tid).data.allocator.allocate_bytes(bytes);
         }
+        auto DeallocateBytes(void* p, std::size_t bytes, std::size_t tid) -> void {
+            arenas.at(tid).data.allocator.deallocate_bytes(p, bytes);
+        }
     };
 
     class ArenaPoolHeapAllocator {
@@ -134,6 +151,9 @@ namespace {
         }
         auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* {
             return arenas.at(tid).data.allocator.allocate_bytes(bytes);
+        }
+        auto DeallocateBytes(void* p, std::size_t bytes, std::size_t tid) -> void {
+            arenas.at(tid).data.allocator.deallocate_bytes(p, bytes);
         }
     };
 
@@ -156,12 +176,18 @@ namespace {
         auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* {
             return arenas.at(tid).data.allocator.allocate_bytes(bytes);
         }
+        auto DeallocateBytes(void* p, std::size_t bytes, std::size_t tid) -> void {
+            arenas.at(tid).data.allocator.deallocate_bytes(p, bytes);
+        }
     };
 
     class JeMallocAllocator {
     public:
         auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* {
             return je_malloc(bytes);
+        }
+        auto DeallocateBytes(void* p, [[maybe_unused]] std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void {
+            je_free(p);
         }
     };
 
@@ -196,8 +222,10 @@ namespace {
         auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* {
             return synchAllocObj(&(arenas.at(tid).data.synchPools.at(Idx(bytes))));
         }
+        auto DeallocateBytes(void* p, std::size_t bytes, std::size_t tid) -> void {
+            synchRecycleObj(&(arenas.at(tid).data.synchPools.at(Idx(bytes))), p);
+        };
     };
-
     auto Benchmark(auto* allocator) -> void {
         using Clock = std::chrono::steady_clock;
         using Unit = std::chrono::milliseconds;
@@ -216,8 +244,10 @@ namespace {
                 if (tid == 0) begin = Clock::now();
                 for (auto i = 0u; i < threadOps; ++i) {
                     const auto allocSize = ALLOC_SIZES.at(i % ALLOC_SIZES.size());
-                    char* p = static_cast<char*>(allocator->AllocateBytes(allocSize, tid));
-                    *p = 1;
+                    void* p = allocator->AllocateBytes(allocSize, tid);
+                    *static_cast<char*>(p) = 1;
+                    if constexpr (ENABLE_DEALLOCATE)
+                        allocator->DeallocateBytes(p, allocSize, tid);
                 }
                 clockBarrier.arrive_and_wait();
                 if (tid == 0) end = Clock::now();

@@ -6,17 +6,17 @@ import math
 from pathlib import Path
 
 ALLOCATORS = [
-    # 'NewDeleteAllocator',
-    # 'SyncPoolHeapAllocator',
+    'NewDeleteAllocator',
+    'SyncPoolHeapAllocator',
     'SyncPoolBufferAllocator',
-    # 'ArenaBufferAllocator',
-    # 'ArenaPoolHeapAllocator',
-    # 'ArenaPoolBufferAllocator',
-    # 'JeMallocAllocator',
+    'ArenaBufferAllocator',
+    'ArenaPoolHeapAllocator',
+    'ArenaPoolBufferAllocator',
+    'JeMallocAllocator',
     # 'SynchPoolAllocator',
 ]
 ALLOC_SIZES = [
-    # '{16}',
+    '{16}',
     '{ 16, 32, 64, 128, 256 }',
 ]
 
@@ -24,6 +24,11 @@ ALLOC_SIZES = [
 def alloc_size_str(val: str):
     return val.replace(' ', '').replace(',', '.').replace('{', '').replace('}', '')
 
+
+ENABLE_DEALLOC_MODES = [
+    'true',
+    'false',
+]
 
 N_THREADS = [
     '1',
@@ -93,26 +98,28 @@ def run_repeatedly(args):
 
 
 def main():
+    print(f'ENABLE_DEALLOC_MODES: {ENABLE_DEALLOC_MODES}')
     print(f'ALLOCATORS: {ALLOCATORS}')
     print(f'ALLOC_SIZES: {ALLOC_SIZES}')
     print(f'N_THREADS: {N_THREADS}')
     subprocess.run(['rm', '-rf', 'build']).check_returncode()
-    for alloc_size in ALLOC_SIZES:
-        with open(f'AllocatorTraces_{alloc_size_str(alloc_size)}.csv', 'w') as f:
-            f.write(f'name,threads,{UNIT},operations\n')
-            for allocator in ALLOCATORS:
-                for n in N_THREADS:
-                    bench = f'build/{allocator}_{alloc_size_str(alloc_size)}_{n}'
-                    subprocess.run(
-                        ['make', 'DEBUG=0', f"""PARAMS=-DPARAM_N_THREADS={n} -DPARAM_ALLOCATOR={allocator} -DPARAM_ALLOC_SIZES='{alloc_size}'"""]).check_returncode()
-                    subprocess.run(
-                        ['mv', f'build/main', f'{bench}']).check_returncode()
-                    subprocess.run(['make', 'clean']).check_returncode()
-                    name, threads, duration, operations = run_repeatedly(
-                        [bench, n])
-                    f.write(
-                        f'{name[:name.find("_")]},{threads},{duration},{operations}\n')
-                    f.flush()
+    for is_dealloc in ENABLE_DEALLOC_MODES:
+        for alloc_size in ALLOC_SIZES:
+            with open(f'AllocatorTraces_{alloc_size_str(alloc_size)}_Dealloc.{is_dealloc}.csv', 'w') as f:
+                f.write(f'name,threads,{UNIT},operations\n')
+                for allocator in ALLOCATORS:
+                    for n in N_THREADS:
+                        bench = f'build/{allocator}_{alloc_size_str(alloc_size)}_{n}'
+                        subprocess.run(
+                            ['make', 'DEBUG=0', f"""PARAMS=-DPARAM_N_THREADS={n} -DPARAM_ALLOCATOR={allocator} -DPARAM_ALLOC_SIZES='{alloc_size}' -DPARAM_ENABLE_DEALLOCATE={is_dealloc}"""]).check_returncode()
+                        subprocess.run(
+                            ['mv', f'build/main', f'{bench}']).check_returncode()
+                        subprocess.run(['make', 'clean']).check_returncode()
+                        name, threads, duration, operations = run_repeatedly(
+                            [bench, n])
+                        f.write(
+                            f'{name[:name.find("_")]},{threads},{duration},{operations}\n')
+                        f.flush()
     print(f'MAX_RUNS_CASES:')
     for case in MAX_RUNS_CASES:
         print(f'{case}')
