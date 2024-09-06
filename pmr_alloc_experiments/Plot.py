@@ -4,22 +4,30 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pathlib
 
-DATA_PATH_DEFAULT = 'PersistentCounters.csv'
+DATA_PATH_DEFAULT = 'Traces.csv'
+TRACE_FILES = [
+    'AllocatorTraces_16.csv',
+    'AllocatorTraces_16.32.64.128.256.csv',
+
+]
 COMMENT_CHAR = '#'
 UNIT = {
     'milliseconds': 10**3,
-    'microseconds': 10**6
+    'microseconds': 10**6,
 }
 
 DROP_MEASUREMENTS = 5
 
 PALETTE_ORDER = [
-    'NotAlignedPersistWord',
-    'AlignedPersistLine',
-    'AlignedPersistWord',
+    'NewDeleteAllocator',
+    'SyncPoolHeapAllocator',
+    'SyncPoolBufferAllocator',
+    'ArenaBufferAllocator',
+    'ArenaPoolHeapAllocator',
+    'ArenaPoolBufferAllocator',
+    'JeMallocAllocator',
+    'SynchPoolAllocator',
 ]
-
-# TRACE_FILES = []
 
 
 def drop_measurements(df):
@@ -83,10 +91,10 @@ def generate(data_path, plot_type):
 
 
 def main():
-    data_path, plot_type = parse_args()
-    generate(data_path, plot_type)
-    # for trace in TRACE_FILES:
-    #     generate(trace, 'pointplot')
+    # data_path, plot_type = parse_args()
+    # generate(data_path, plot_type)
+    for trace in TRACE_FILES:
+        generate(trace, 'pointplot')
 
 
 if __name__ == '__main__':

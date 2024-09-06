@@ -36,7 +36,7 @@ typedef struct SynchPoolBlock {
     /// @brief The metadata of the block.
     SynchPoolBlockMetadata metadata;
     /// @brief The actual storage space of the block (i.e. the objects of the block).
-    char* heap;
+    char heap[];
 } SynchPoolBlock;
 
 /// @brief PoolStruct stores an instance of the pool object.

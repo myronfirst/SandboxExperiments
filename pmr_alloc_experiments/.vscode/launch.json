@@ -5,6 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "RunAll",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/RunAll.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Plot",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/Plot.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Main",
             "type": "cppdbg",
             "request": "launch",
