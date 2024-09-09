@@ -12,7 +12,7 @@
 #include "synch_pool.h"
 
 #ifndef PARAM_N_THREADS
-#define PARAM_N_THREADS 1
+#define PARAM_N_THREADS 4
 #endif
 #ifndef PARAM_ALLOC_SIZES
 #define PARAM_ALLOC_SIZES \
@@ -34,7 +34,7 @@ namespace {
     constexpr auto ALLOC_SIZES = std::to_array<std::size_t>(PARAM_ALLOC_SIZES);
     constexpr bool ENABLE_DEALLOCATE = PARAM_ENABLE_DEALLOCATE;
     // constexpr std::size_t LOG2N_OPS = 24;
-    constexpr std::size_t LOG2N_OPS = 20;
+    constexpr std::size_t LOG2N_OPS = 24;
 
     constexpr std::size_t MAX_BLOCKS_PER_CHUNK = Pow(2, LOG2N_OPS + 1);
     constexpr std::size_t MBR_SIZE = Sum(ALLOC_SIZES) * MAX_BLOCKS_PER_CHUNK;
@@ -46,7 +46,7 @@ namespace {
 #endif
 
     // auto& DStream = std::cout;
-    auto DStream = std::ofstream{ "debug.txt", std::ios_base::app };
+    auto DStream = std::ofstream{ "/dev/null", std::ios_base::app };
 
     auto PinThisThreadToCore(std::size_t core) -> void {
         int err;
