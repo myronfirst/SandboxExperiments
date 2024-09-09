@@ -20,10 +20,10 @@
 // { 16, 32, 64, 128, 256 }
 #endif
 #ifndef PARAM_ALLOCATOR
-#define PARAM_ALLOCATOR NewDeleteAllocator
+#define PARAM_ALLOCATOR SynchPoolAllocator
 #endif
 #ifndef PARAM_ENABLE_DEALLOCATE
-#define PARAM_ENABLE_DEALLOCATE true
+#define PARAM_ENABLE_DEALLOCATE false
 #endif
 
 namespace {
@@ -34,7 +34,7 @@ namespace {
     constexpr auto ALLOC_SIZES = std::to_array<std::size_t>(PARAM_ALLOC_SIZES);
     constexpr bool ENABLE_DEALLOCATE = PARAM_ENABLE_DEALLOCATE;
     // constexpr std::size_t LOG2N_OPS = 24;
-    constexpr std::size_t LOG2N_OPS = 16;
+    constexpr std::size_t LOG2N_OPS = 20;
 
     constexpr std::size_t MAX_BLOCKS_PER_CHUNK = Pow(2, LOG2N_OPS + 1);
     constexpr std::size_t MBR_SIZE = Sum(ALLOC_SIZES) * MAX_BLOCKS_PER_CHUNK;

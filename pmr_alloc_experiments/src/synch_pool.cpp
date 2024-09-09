@@ -5,6 +5,8 @@
 
 #include <cstdio>
 
+// NOLINTBEGIN
+
 // #define SYNCH_NUMA_SUPPORT
 
 static const uint32_t BLOCK_SIZE = 4096 * 8192;
@@ -54,6 +56,7 @@ static void* get_new_block(uint32_t obj_size) {
     block->metadata.object_size = obj_size;
     block->metadata.next = NULL;
     block->metadata.back = NULL;
+    // block->heap = (char*)block + sizeof(block->metadata);
 
     return block;
 }
@@ -112,14 +115,12 @@ void* synchAllocObj(SynchPoolStruct* pool) {
 }
 
 void synchRecycleObj(SynchPoolStruct* pool, void* obj) {
-#ifndef SYNCH_POOL_NODE_RECYCLING_DISABLE
     if (obj == NULL)
         return;
 
     SynchBlockObject* object = (SynchBlockObject*)obj;
     object->next = pool->recycle_list;
     pool->recycle_list = object;
-#endif
 }
 
 void synchRollback(SynchPoolStruct* pool, uint32_t num_objs) {
@@ -149,3 +150,5 @@ void synchDestroyPool(SynchPoolStruct* pool) {
     pool->head_block = NULL;
     pool->cur_block = NULL;
 }
+
+// NOLINTEND

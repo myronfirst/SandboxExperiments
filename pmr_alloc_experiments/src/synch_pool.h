@@ -9,6 +9,8 @@
 
 #include <cstdint>
 
+// NOLINTBEGIN
+
 /// @brief A struct for the block object.
 typedef struct SynchBlockObject {
     /// @brief The first field of a block object is a pointer to the next allocated block (if any).
@@ -35,7 +37,7 @@ typedef struct SynchPoolBlockMetadata {
 typedef struct SynchPoolBlock {
     /// @brief The metadata of the block.
     SynchPoolBlockMetadata metadata;
-    /// @brief The actual storage space of the block (i.e. the objects of the block).
+    /// @brief The actual storage space of the block (i.e. the objects &(pool->cur_block)of the block).
     char heap[];
 } SynchPoolBlock;
 
@@ -85,5 +87,7 @@ void synchRollback(SynchPoolStruct* pool, uint32_t num_objs);
 /// @brief This function frees all the memory allocated by the pool object.
 /// @param pool A pointer to the pool of objects.
 void synchDestroyPool(SynchPoolStruct* pool);
+
+// NOLINTEND
 
 #endif
