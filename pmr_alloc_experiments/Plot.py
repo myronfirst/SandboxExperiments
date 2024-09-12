@@ -6,8 +6,13 @@ import pathlib
 
 DATA_PATH_DEFAULT = 'Traces.csv'
 TRACE_FILES = [
-    'AllocatorTraces_16.csv',
-    'AllocatorTraces_16.32.64.128.256.csv',
+    'AllocatorTraces_16_Dealloc.true_NoSynchPool.csv',
+    'AllocatorTraces_16_Dealloc.false.csv',
+    'AllocatorTraces_16_Dealloc.true.csv',
+    'AllocatorTraces_16.32.64.128.256_Dealloc.false.csv',
+    'AllocatorTraces_16.32.64.128.256_Dealloc.true.csv',
+    'AllocatorTraces_64.128.256_Dealloc.false.csv',
+    'AllocatorTraces_64.128.256_Dealloc.true.csv',
 
 ]
 COMMENT_CHAR = '#'
@@ -19,14 +24,14 @@ UNIT = {
 DROP_MEASUREMENTS = 5
 
 PALETTE_ORDER = [
-    'NewDeleteAllocator',
-    'SyncPoolHeapAllocator',
-    'SyncPoolBufferAllocator',
-    'ArenaBufferAllocator',
-    'ArenaPoolHeapAllocator',
-    'ArenaPoolBufferAllocator',
-    'JeMallocAllocator',
-    'SynchPoolAllocator',
+    'NewDelete',
+    'SyncPoolHeap',
+    'SyncPoolBuffer',
+    'ArenaBuffer',
+    'ArenaPoolHeap',
+    'ArenaPoolBuffer',
+    'JeMalloc',
+    'SynchPool',
 ]
 
 

@@ -1,5 +1,5 @@
 ---
-Checks:                       'performance-*,portability-*,readability-*,bugprone-*,clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,modernize-*,-cppcoreguidelines-avoid-non-const-global-variables,-modernize-use-nodiscard,-readability-named-parameter,-readability-identifier-length,-readability-braces-around-statements'
+Checks:                       'performance-*,portability-*,readability-*,bugprone-*,clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,modernize-*,-cppcoreguidelines-avoid-non-const-global-variables,-modernize-use-nodiscard,-readability-named-parameter,-readability-identifier-length,-readability-braces-around-statements,-bugprone-easily-swappable-parameters'
 WarningsAsErrors:             ''
 HeaderFilterRegex:            '.*'
 FormatStyle:                  file

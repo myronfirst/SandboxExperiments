@@ -3,7 +3,6 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <memory_resource>
 #include <numeric>
 #include <thread>
@@ -12,15 +11,16 @@
 #include "synch_pool.h"
 
 #ifndef PARAM_N_THREADS
-#define PARAM_N_THREADS 4
+#define PARAM_N_THREADS 8
 #endif
 #ifndef PARAM_ALLOC_SIZES
 #define PARAM_ALLOC_SIZES \
     { 16 }
+// { 64, 128, 256 }
 // { 16, 32, 64, 128, 256 }
 #endif
 #ifndef PARAM_ALLOCATOR
-#define PARAM_ALLOCATOR SynchPoolAllocator
+#define PARAM_ALLOCATOR ArenaPoolBuffer
 #endif
 #ifndef PARAM_ENABLE_DEALLOCATE
 #define PARAM_ENABLE_DEALLOCATE false
@@ -28,12 +28,11 @@
 
 namespace {
     auto consteval Pow(std::size_t base, std::size_t exp) -> std::size_t { return exp == 0 ? 1 : base * Pow(base, exp - 1); }
-    auto consteval Sum(auto&& container) { return std::accumulate(std::begin(container), std::end(container), 0U); }
+    auto consteval Sum(auto&& container) { return std::accumulate(std::begin(container), std::end(container), 0UL); }
 
     constexpr std::size_t N_THREADS = PARAM_N_THREADS;
     constexpr auto ALLOC_SIZES = std::to_array<std::size_t>(PARAM_ALLOC_SIZES);
     constexpr bool ENABLE_DEALLOCATE = PARAM_ENABLE_DEALLOCATE;
-    // constexpr std::size_t LOG2N_OPS = 24;
     constexpr std::size_t LOG2N_OPS = 24;
 
     constexpr std::size_t MAX_BLOCKS_PER_CHUNK = Pow(2, LOG2N_OPS + 1);
@@ -49,20 +48,20 @@ namespace {
     auto DStream = std::ofstream{ "/dev/null", std::ios_base::app };
 
     auto PinThisThreadToCore(std::size_t core) -> void {
-        int err;
+        int err{};
         err = pthread_setconcurrency(static_cast<int>(std::thread::hardware_concurrency()));
-        if (err) throw std::runtime_error{ "pthread_setconcurrency" };
+        if (err != 0) throw std::runtime_error{ "pthread_setconcurrency" };
         cpu_set_t cpu_mask;
         CPU_ZERO(&cpu_mask);
         CPU_SET(core, &cpu_mask);
         err = pthread_setaffinity_np(pthread_self(), sizeof(cpu_mask), &cpu_mask);
-        if (err) throw std::runtime_error{ "pthread_setaffinity_np" };
+        if (err != 0) throw std::runtime_error{ "pthread_setaffinity_np" };
     }
 
     template<typename T>
     struct alignas(CACHE_LINE_SIZE) Aligned { T data; };
 
-    class NewDeleteAllocator {
+    class NewDelete {
     private:
         std::pmr::polymorphic_allocator<> allocator{ std::pmr::new_delete_resource() };
 
@@ -75,13 +74,13 @@ namespace {
         }
     };
 
-    class SyncPoolHeapAllocator {
+    class SyncPoolHeap {
     private:
         std::pmr::synchronized_pool_resource pool{ { .max_blocks_per_chunk = MAX_BLOCKS_PER_CHUNK }, std::pmr::new_delete_resource() };
         std::pmr::polymorphic_allocator<> allocator{ &pool };
 
     public:
-        SyncPoolHeapAllocator() {
+        SyncPoolHeap() {
             DStream << "SyncPoolHeapAllocator\n"
                     << "max_blocks_per_chunk: " << pool.options().max_blocks_per_chunk << "\n";
         }
@@ -93,7 +92,7 @@ namespace {
         }
     };
 
-    class SyncPoolBufferAllocator {
+    class SyncPoolBuffer {
     private:
         std::array<std::byte, MBR_SIZE> buffer{};
         std::pmr::monotonic_buffer_resource mbr{ buffer.data(), buffer.size() * sizeof(std::byte), std::pmr::null_memory_resource() };
@@ -101,7 +100,7 @@ namespace {
         std::pmr::polymorphic_allocator<> allocator{ &pool };
 
     public:
-        SyncPoolBufferAllocator() {
+        SyncPoolBuffer() {
             DStream << "SyncPoolBufferAllocator\n"
                     << "mbr size: " << buffer.size() << "\n"
                     << "max_blocks_per_chunk: " << pool.options().max_blocks_per_chunk << "\n";
@@ -114,7 +113,24 @@ namespace {
         }
     };
 
-    class ArenaBufferAllocator {
+    class DebugResource : public std::pmr::memory_resource {
+    public:
+        DebugResource(std::pmr::memory_resource* r) : resource{ r } {}
+
+    private:
+        std::pmr::memory_resource* resource{};
+        auto do_allocate(std::size_t bytes, std::size_t alignment = alignof(std::max_align_t)) -> void* override {
+            DStream << "DebugResource::Allocate bytes: " << bytes << "\n";
+            return resource->allocate(bytes, alignment);
+        }
+        auto do_deallocate(void* p, std::size_t bytes, std::size_t alignment = alignof(std::max_align_t)) -> void override {
+            DStream << "DebugResource::Allocate p: " << p << " bytes: " << bytes << "\n";
+            return resource->deallocate(p, bytes, alignment);
+        }
+        auto do_is_equal(const std::pmr::memory_resource& other) const noexcept -> bool override { return this == &other; }
+    };
+
+    class ArenaBuffer {
     private:
         struct Arena {
             std::array<std::byte, MBR_SIZE / N_THREADS> buffer{};
@@ -124,7 +140,7 @@ namespace {
         std::array<Aligned<Arena>, N_THREADS> arenas;
 
     public:
-        ArenaBufferAllocator() {
+        ArenaBuffer() {
             DStream << "ArenaBufferAllocator\n"
                     << "mbr size: " << arenas.at(0).data.buffer.size() << "\n";
         }
@@ -136,7 +152,7 @@ namespace {
         }
     };
 
-    class ArenaPoolHeapAllocator {
+    class ArenaPoolHeap {
     private:
         struct Arena {
             std::pmr::unsynchronized_pool_resource pool{ { .max_blocks_per_chunk = MAX_BLOCKS_PER_CHUNK / N_THREADS }, std::pmr::new_delete_resource() };
@@ -145,7 +161,7 @@ namespace {
         std::array<Aligned<Arena>, N_THREADS> arenas;
 
     public:
-        ArenaPoolHeapAllocator() {
+        ArenaPoolHeap() {
             DStream << "ArenaPoolHeapAllocator\n"
                     << "max_blocks_per_chunk: " << arenas.at(0).data.pool.options().max_blocks_per_chunk << "\n";
         }
@@ -157,7 +173,7 @@ namespace {
         }
     };
 
-    class ArenaPoolBufferAllocator {
+    class ArenaPoolBuffer {
     private:
         struct Arena {
             std::array<std::byte, MBR_SIZE / N_THREADS> buffer{};
@@ -168,7 +184,7 @@ namespace {
         std::array<Aligned<Arena>, N_THREADS> arenas;
 
     public:
-        ArenaPoolBufferAllocator() {
+        ArenaPoolBuffer() {
             DStream << "ArenaPoolBufferAllocator\n"
                     << "mbr size: " << arenas.at(0).data.buffer.size() << "\n"
                     << "max_blocks_per_chunk: " << arenas.at(0).data.pool.options().max_blocks_per_chunk << "\n";
@@ -181,17 +197,17 @@ namespace {
         }
     };
 
-    class JeMallocAllocator {
+    class JeMalloc {
     public:
-        auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* {
+        static auto AllocateBytes(std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void* {
             return je_malloc(bytes);
         }
-        auto DeallocateBytes(void* p, [[maybe_unused]] std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void {
+        static auto DeallocateBytes(void* p, [[maybe_unused]] std::size_t bytes, [[maybe_unused]] std::size_t tid) -> void {
             je_free(p);
         }
     };
 
-    class SynchPoolAllocator {
+    class SynchPool {
     private:
         struct Arena {
             std::array<SynchPoolStruct, ALLOC_SIZES.size()> synchPools{};
@@ -199,25 +215,30 @@ namespace {
         std::array<Aligned<Arena>, N_THREADS> arenas;
 
         static auto Idx(std::size_t val) -> std::size_t {
-            for (auto i = 0u; i < ALLOC_SIZES.size(); ++i)
+            for (auto i = 0U; i < ALLOC_SIZES.size(); ++i)
                 if (val == ALLOC_SIZES.at(i)) return i;
             throw(std::runtime_error{ "Idx" });
         }
 
     public:
-        SynchPoolAllocator() {
+        SynchPool(const SynchPool&) = default;
+        SynchPool(SynchPool&&) = default;
+        auto operator=(const SynchPool&) -> SynchPool& = default;
+        auto operator=(SynchPool&&) -> SynchPool& = default;
+
+        SynchPool() {
             for (auto& arena : arenas)
-                for (auto i = 0u; i < arena.data.synchPools.size(); ++i)
+                for (auto i = 0U; i < arena.data.synchPools.size(); ++i)
                     synchInitPool(&(arena.data.synchPools.at(i)), static_cast<std::uint32_t>(ALLOC_SIZES.at(i)));
             const auto entries = arenas.at(0).data.synchPools.at(0).entries_per_block;
             const auto obj_size = arenas.at(0).data.synchPools.at(0).obj_size;
             DStream << "SynchPoolAllocator\n"
                     << "block size: " << entries * obj_size << "\n";
         }
-        ~SynchPoolAllocator() {
+        ~SynchPool() {
             for (auto& arena : arenas)
-                for (auto i = 0u; i < arena.data.synchPools.size(); ++i)
-                    synchDestroyPool(&(arena.data.synchPools.at(i)));
+                for (auto& synchPool : arena.data.synchPools)
+                    synchDestroyPool(&synchPool);
         }
         auto AllocateBytes(std::size_t bytes, std::size_t tid) -> void* {
             return synchAllocObj(&(arenas.at(tid).data.synchPools.at(Idx(bytes))));
@@ -237,12 +258,12 @@ namespace {
         TimePoint end{};
         std::barrier clockBarrier{ N_THREADS };
 
-        for (auto tid = 0u; tid < threads.size(); ++tid) {
+        for (auto tid = 0U; tid < threads.size(); ++tid) {
             threads.at(tid) = std::thread([tid, allocator, &begin, &end, &clockBarrier]() {
                 PinThisThreadToCore(tid % N_THREADS);
                 clockBarrier.arrive_and_wait();
                 if (tid == 0) begin = Clock::now();
-                for (auto i = 0u; i < threadOps; ++i) {
+                for (auto i = 0U; i < threadOps; ++i) {
                     const auto allocSize = ALLOC_SIZES.at(i % ALLOC_SIZES.size());
                     void* p = allocator->AllocateBytes(allocSize, tid);
                     *static_cast<char*>(p) = 1;

@@ -6,17 +6,18 @@ import math
 from pathlib import Path
 
 ALLOCATORS = [
-    'NewDeleteAllocator',
-    'SyncPoolHeapAllocator',
-    'SyncPoolBufferAllocator',
-    'ArenaBufferAllocator',
-    'ArenaPoolHeapAllocator',
-    'ArenaPoolBufferAllocator',
-    'JeMallocAllocator',
-    # 'SynchPoolAllocator',
+    'NewDelete',
+    'SyncPoolHeap',
+    'SyncPoolBuffer',
+    'ArenaBuffer',
+    'ArenaPoolHeap',
+    'ArenaPoolBuffer',
+    'JeMalloc',
+    'SynchPool',
 ]
 ALLOC_SIZES = [
     '{16}',
+    '{ 64, 128, 256 }',
     '{ 16, 32, 64, 128, 256 }',
 ]
 
@@ -26,8 +27,8 @@ def alloc_size_str(val: str):
 
 
 ENABLE_DEALLOC_MODES = [
-    'true',
     'false',
+    'true',
 ]
 
 N_THREADS = [
@@ -35,13 +36,19 @@ N_THREADS = [
     '2',
     '4',
     '8',
-    # '12',
-    # '16',
-    # '20',
-    # '24',
+    '12',
+    '16',
+    '20',
+    '24',
+    '28',
+    '32',
+    '36',
+    '40',
+    '44',
+    '48',
 ]
 
-MIN_RUNS = 5
+MIN_RUNS = 3
 MAX_RUNS = 10
 
 UNIT = 'milliseconds'
