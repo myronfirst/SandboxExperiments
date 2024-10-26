@@ -1,0 +1,42 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc-11",
+      "-Wall",
+      "-Wextra",
+      "-Wshadow",
+      "-Wnon-virtual-dtor",
+      "-Wpedantic",
+      "-Wold-style-cast",
+      "-Wcast-align",
+      "-Wunused",
+      "-Woverloaded-virtual",
+      "-Wconversion",
+      "-Wsign-conversion",
+      "-Wmisleading-indentation",
+      "-Wduplicated-cond",
+      "-Wduplicated-branches",
+      "-Wlogical-op",
+      "-Wnull-dereference",
+      "-Wuseless-cast",
+      "-Wdouble-promotion",
+      "-Wformat=2",
+      "-g3",
+      "-std=c++23",
+      "-march=native",
+      "-O3",
+      "-DNDEBUG",
+      "-UPARAM_N_THREADS",
+      "-UPARAM_ALLOCATOR",
+      "-UPARAM_ALLOC_SIZES",
+      "-UPARAM_ENABLE_DEALLOCATE",
+      "-c",
+      "-o",
+      "build/main.o",
+      "src/main.cpp"
+    ],
+    "directory": "/home/user/SandboxExperiments/CAS16_experiments_temp",
+    "file": "/home/user/SandboxExperiments/CAS16_experiments_temp/src/main.cpp",
+    "output": "/home/user/SandboxExperiments/CAS16_experiments_temp/build/main.o"
+  }
+]
