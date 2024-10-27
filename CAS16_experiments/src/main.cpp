@@ -11,12 +11,12 @@ namespace {
     auto consteval Pow(std::size_t base, std::size_t exp) -> std::size_t { return exp == 0 ? 1 : base * Pow(base, exp - 1); }
     auto consteval Sum(auto&& container) { return std::accumulate(std::begin(container), std::end(container), 0U); }
 
-    // #define CAS2_BUILTIN
+#define CAS2_BUILTIN
     // #define CAS2_KALLIM
-#define CAS2_LIBATOMIC
+    // #define CAS2_LIBATOMIC
     constexpr std::memory_order Order = std::memory_order_relaxed;
-    constexpr std::size_t N_THREADS = 24;
-    constexpr std::size_t LOG2N_OPS = 26;
+    constexpr std::size_t N_THREADS = 12;
+    constexpr std::size_t LOG2N_OPS = 24;
     constexpr std::size_t NOps = Pow(2, LOG2N_OPS);
     constexpr std::size_t ThreadOps = NOps / N_THREADS;
 
