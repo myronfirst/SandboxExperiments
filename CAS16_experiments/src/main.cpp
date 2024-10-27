@@ -20,8 +20,6 @@ namespace {
     constexpr std::size_t NOps = Pow(2, LOG2N_OPS);
     constexpr std::size_t ThreadOps = NOps / N_THREADS;
 
-    // constexpr std::size_t LOG2N_OPS = 16;
-
 #ifdef __cpp_lib_hardware_interference_size
     constexpr std::size_t CACHE_LINE_SIZE = std::hardware_constructive_interference_size;
 #else
@@ -80,17 +78,15 @@ namespace {
                                              [[maybe_unused]] std::memory_order success,
                                              [[maybe_unused]] std::memory_order failure) noexcept -> bool {
 #ifdef CAS2_BUILTIN
-        const __uint128_t ret = __sync_val_compare_and_swap(
+        const bool ok = __sync_bool_compare_and_swap(
             reinterpret_cast<__uint128_t*>(obj),
             *reinterpret_cast<__uint128_t*>(expected),
             *reinterpret_cast<__uint128_t*>(std::addressof(desired)));
-        auto prev = *reinterpret_cast<const std::atomic<T>::value_type*>(std::addressof(ret));
-        if (prev == *expected) return true;
-        *expected = prev;
-        return false;
+        if (!ok) *expected = obj->load(failure);
+        return ok;
 #endif
 #ifdef CAS2_KALLIM
-        bool ok = CAS128(reinterpret_cast<std::uint64_t*>(obj), expected->val[0], expected->val[1], desired.val[0], desired.val[1]);
+        const bool ok = CAS128(reinterpret_cast<std::uint64_t*>(obj), expected->val[0], expected->val[1], desired.val[0], desired.val[1]);
         if (!ok) *expected = obj->load(failure);
         return ok;
 #endif
