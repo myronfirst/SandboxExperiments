@@ -5,6 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Plot",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "Plot.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "RunAll",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "RunAll.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Main",
             "type": "cppdbg",
             "request": "launch",

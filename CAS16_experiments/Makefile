@@ -1,5 +1,6 @@
 DEBUG		:=	0
-PARAMS		:=
+PARAMS		:= -UPARAM_N_THREADS -UPARAM_CAS2_IMPL
+# PARAMS		:= -DPARAM_N_THREADS=24 -DPARAM_CAS2_IMPL=LibAtomic
 
 SOURCE_DIR  :=  src
 BUILDDIR	:=	build
@@ -45,6 +46,3 @@ $(BUILDDIR):
 
 $(BUILDDIR)/main.o: $(SOURCE_DIR)/main.cpp | $(BUILDDIR)
 	$(CC) $(CCFLAGS) $(PARAMS) -c -o $@ $<
-
-# $(BUILDDIR)/synch_pool.o: $(SOURCE_DIR)/synch_pool.cpp | $(BUILDDIR)
-# 	$(CC) $(CCFLAGS) $(PARAMS) -Wno-old-style-cast -c -o $@ $<

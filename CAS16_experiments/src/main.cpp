@@ -7,16 +7,26 @@
 #include <numeric>
 #include <thread>
 
+#ifndef PARAM_N_THREADS
+#define PARAM_N_THREADS 24
+#endif
+#ifndef PARAM_CAS2_IMPL
+#define PARAM_CAS2_IMPL LibAtomic
+#endif
+
 namespace {
     auto consteval Pow(std::size_t base, std::size_t exp) -> std::size_t { return exp == 0 ? 1 : base * Pow(base, exp - 1); }
     auto consteval Sum(auto&& container) { return std::accumulate(std::begin(container), std::end(container), 0U); }
 
-#define CAS2_BUILTIN
-    // #define CAS2_KALLIM
-    // #define CAS2_LIBATOMIC
+    enum class CAS2Impl {
+        SynchBuiltin,
+        AssemblySynch,
+        LibAtomic,
+    };
+    constexpr CAS2Impl CAS2_IMPL = CAS2Impl::PARAM_CAS2_IMPL;
     constexpr std::memory_order Order = std::memory_order_relaxed;
-    constexpr std::size_t N_THREADS = 12;
-    constexpr std::size_t LOG2N_OPS = 24;
+    constexpr std::size_t N_THREADS = PARAM_N_THREADS;
+    constexpr std::size_t LOG2N_OPS = 25;
     constexpr std::size_t NOps = Pow(2, LOG2N_OPS);
     constexpr std::size_t ThreadOps = NOps / N_THREADS;
 
@@ -37,22 +47,50 @@ namespace {
         if (err != 0) throw std::runtime_error{ "pthread_setaffinity_np" };
     }
 
+    template<class T>
+    inline auto CAS2SyncBuiltin(std::atomic<T>* obj,
+                                typename std::atomic<T>::value_type* expected,
+                                typename std::atomic<T>::value_type desired,
+                                [[maybe_unused]] std::memory_order success,
+                                [[maybe_unused]] std::memory_order failure) noexcept -> bool {
+        const bool ok = __sync_bool_compare_and_swap(
+            reinterpret_cast<__uint128_t*>(obj),
+            *reinterpret_cast<__uint128_t*>(expected),
+            *reinterpret_cast<__uint128_t*>(std::addressof(desired)));
+        if (!ok) *expected = obj->load(failure);
+        return ok;
+    }
     inline auto CAS128(uint64_t* A, uint64_t B0, uint64_t B1, uint64_t C0, uint64_t C1) -> bool {
-        bool res;
 #if defined(__OLD_GCC_X86__) || defined(__amd64__) || defined(__x86_64__)
+        bool res;
         std::uint64_t dummy;
         asm volatile(
             "lock;"
             "cmpxchg16b %2; setz %1"
             : "=d"(dummy), "=a"(res), "+m"(*A)
             : "b"(C0), "c"(C1), "a"(B0), "d"(B1));
-#else
-        assert(false);
-        __uint128_t old_value = (__uint128_t)(B0) | (((__uint128_t)(B1)) << 64ULL);
-        __uint128_t new_value = (__uint128_t)(C0) | (((__uint128_t)(C1)) << 64ULL);
-        res = __atomic_compare_exchange_16(A, &old_value, new_value, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-#endif
         return res;
+#else
+        __builtin_trap();
+#endif
+    }
+    template<class T>
+    inline auto CAS2AssemblySynch(std::atomic<T>* obj,
+                                  typename std::atomic<T>::value_type* expected,
+                                  typename std::atomic<T>::value_type desired,
+                                  [[maybe_unused]] std::memory_order success,
+                                  [[maybe_unused]] std::memory_order failure) noexcept -> bool {
+        const bool ok = CAS128(reinterpret_cast<std::uint64_t*>(obj), expected->val[0], expected->val[1], desired.val[0], desired.val[1]);
+        if (!ok) *expected = obj->load(failure);
+        return ok;
+    }
+    template<class T>
+    inline auto CAS2LibAtomic(std::atomic<T>* obj,
+                              typename std::atomic<T>::value_type* expected,
+                              typename std::atomic<T>::value_type desired,
+                              [[maybe_unused]] std::memory_order success,
+                              [[maybe_unused]] std::memory_order failure) noexcept -> bool {
+        return obj->compare_exchange_strong(*expected, desired, success, failure);
     }
 
     struct Type {
@@ -72,28 +110,19 @@ namespace {
     std::atomic<Type> SharedCounter{ 0 };
 
     template<class T>
-    auto AtomicCompareExchangeStrongExplicit(std::atomic<T>* obj,
-                                             typename std::atomic<T>::value_type* expected,
-                                             typename std::atomic<T>::value_type desired,
-                                             [[maybe_unused]] std::memory_order success,
-                                             [[maybe_unused]] std::memory_order failure) noexcept -> bool {
-#ifdef CAS2_BUILTIN
-        const bool ok = __sync_bool_compare_and_swap(
-            reinterpret_cast<__uint128_t*>(obj),
-            *reinterpret_cast<__uint128_t*>(expected),
-            *reinterpret_cast<__uint128_t*>(std::addressof(desired)));
-        if (!ok) *expected = obj->load(failure);
-        return ok;
-#endif
-#ifdef CAS2_KALLIM
-        const bool ok = CAS128(reinterpret_cast<std::uint64_t*>(obj), expected->val[0], expected->val[1], desired.val[0], desired.val[1]);
-        if (!ok) *expected = obj->load(failure);
-        return ok;
-#endif
-#ifdef CAS2_LIBATOMIC
-        return obj->compare_exchange_strong(*expected, desired, success, failure);
-#endif
-        __builtin_trap();
+    inline auto AtomicCompareExchangeStrongExplicit(std::atomic<T>* obj,
+                                                    typename std::atomic<T>::value_type* expected,
+                                                    typename std::atomic<T>::value_type desired,
+                                                    [[maybe_unused]] std::memory_order success,
+                                                    [[maybe_unused]] std::memory_order failure) noexcept -> bool {
+        if constexpr (CAS2_IMPL == CAS2Impl::SynchBuiltin)
+            return CAS2SyncBuiltin(obj, expected, desired, success, failure);
+        else if constexpr (CAS2_IMPL == CAS2Impl::AssemblySynch)
+            return CAS2AssemblySynch(obj, expected, desired, success, failure);
+        else if constexpr (CAS2_IMPL == CAS2Impl::LibAtomic)
+            return CAS2LibAtomic(obj, expected, desired, success, failure);
+        else
+            __builtin_trap();
     }
 
     auto Benchmark() -> void {
@@ -130,11 +159,6 @@ namespace {
 }    // namespace
 
 auto main() -> int {
-    std::cout << "is_always_lock_free: " << SharedCounter.is_always_lock_free << "\n";
-    std::cout << "is_lock_free: " << SharedCounter.is_lock_free() << "\n";
-
     Benchmark();
-    std::cout << "Expected: " << ThreadOps * N_THREADS << "\n";
-    std::cout << "Desired: " << SharedCounter.load().Get() << "\n";
     assert(SharedCounter.load().Get() == ThreadOps * N_THREADS);
 }
