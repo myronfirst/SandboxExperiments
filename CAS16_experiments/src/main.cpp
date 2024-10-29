@@ -19,7 +19,7 @@ namespace {
     auto consteval Sum(auto&& container) { return std::accumulate(std::begin(container), std::end(container), 0U); }
 
     enum class CAS2Impl {
-        SynchBuiltin,
+        SyncBuiltin,
         AssemblySynch,
         LibAtomic,
     };
@@ -115,7 +115,7 @@ namespace {
                                                     typename std::atomic<T>::value_type desired,
                                                     [[maybe_unused]] std::memory_order success,
                                                     [[maybe_unused]] std::memory_order failure) noexcept -> bool {
-        if constexpr (CAS2_IMPL == CAS2Impl::SynchBuiltin)
+        if constexpr (CAS2_IMPL == CAS2Impl::SyncBuiltin)
             return CAS2SyncBuiltin(obj, expected, desired, success, failure);
         else if constexpr (CAS2_IMPL == CAS2Impl::AssemblySynch)
             return CAS2AssemblySynch(obj, expected, desired, success, failure);
