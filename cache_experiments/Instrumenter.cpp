@@ -20,70 +20,55 @@ namespace {
         ss >> tid;
         return tid;
     }
-    template<typename T>
-    struct TypeName {
+    template<typename T> struct TypeName {
         constexpr static auto GetName() -> std::string_view { return typeid(T).name(); }
         constexpr static auto GetSuffix() -> std::string_view { return typeid(T).name(); }
     };
-    template<>
-    struct TypeName<std::chrono::seconds> {
+    template<> struct TypeName<std::chrono::seconds> {
         constexpr static auto GetName() -> std::string_view { return "seconds"; }
         constexpr static auto GetSuffix() -> std::string_view { return "s"; }
     };
-    template<>
-    struct TypeName<std::chrono::milliseconds> {
+    template<> struct TypeName<std::chrono::milliseconds> {
         constexpr static auto GetName() -> std::string_view { return "milliseconds"; }
         constexpr static auto GetSuffix() -> std::string_view { return "ms"; }
     };
-    template<>
-    struct TypeName<std::chrono::microseconds> {
+    template<> struct TypeName<std::chrono::microseconds> {
         constexpr static auto GetName() -> std::string_view { return "microseconds"; }
         constexpr static auto GetSuffix() -> std::string_view { return "us"; }
     };
-    template<>
-    struct TypeName<std::chrono::nanoseconds> {
+    template<> struct TypeName<std::chrono::nanoseconds> {
         constexpr static auto GetName() -> std::string_view { return "nanoseconds"; }
         constexpr static auto GetSuffix() -> std::string_view { return "ns"; }
     };
 
     auto operator<<(std::ostream& os, const Trace& obj) -> std::ostream& {
-        os << "{"
-           << std::quoted("name") << ": " << std::quoted(obj.name) << ", "
-           << std::quoted("cat") << ": " << std::quoted(obj.category) << ", "
-           << std::quoted("ph") << ": " << std::quoted(obj.type) << ", "
-           << std::quoted("ts") << ": " << obj.timestamp << ", "
+        os << "{" << std::quoted("name") << ": " << std::quoted(obj.name) << ", " << std::quoted("cat") << ": " << std::quoted(obj.category) << ", " << std::quoted("ph") << ": "
+           << std::quoted(obj.type) << ", " << std::quoted("ts") << ": " << obj.timestamp.count()
+           << ", "
            //    << std::quoted("tts") << ": " //thread clock timestamp
-           << std::quoted("dur") << ": " << obj.duration << ", "
+           << std::quoted("dur") << ": " << obj.duration.count()
+           << ", "
            //    << std::quoted("tts") << ": " //thread clock duration
-           << std::quoted("pid") << ": " << obj.processId << ", "
-           << std::quoted("tid") << ": " << obj.threadId
-           << "}";
+           << std::quoted("pid") << ": " << obj.processId << ", " << std::quoted("tid") << ": " << obj.threadId << "}";
         return os;
     }
 
     [[maybe_unused]] auto SaveAsJSON(const std::string& fileName, const std::vector<Trace>& traceVec) -> void {
         std::ofstream f{ fileName + ".json" };
-        f << "{\n"
-          << std::quoted("displayTimeUnit") << ": " << std::quoted(TypeName<Timer::Unit>::GetSuffix()) << ",\n"
-          << std::quoted("traceEvents") << ": [\n";
+        f << "{\n" << std::quoted("displayTimeUnit") << ": " << std::quoted(TypeName<Unit>::GetSuffix()) << ",\n" << std::quoted("traceEvents") << ": [\n";
         const size_t sz = std::size(traceVec);
         if (sz) {
-            for (auto i = 0u; i < sz - 1; ++i)
-                f << traceVec.at(i) << ",\n";
+            for (auto i = 0u; i < sz - 1; ++i) f << traceVec.at(i) << ",\n";
             f << traceVec.at(sz - 1) << "\n";
         }
         f << "]\n"
           << "}\n";
     }
-    const auto Header = "experiments, " + std::string{ TypeName<Timer::Unit>::GetName() };
+    const auto Header = "experiments," + std::string{ TypeName<Unit>::GetName() };
     [[maybe_unused]] auto SaveAsCSV(const std::string& fileName, const std::vector<Trace>& traceVec) -> void {
         std::ofstream f{ fileName + ".csv" };
         f << Header << '\n';
-        for (const auto& trace : traceVec) {
-            f << trace.name << ','
-              << trace.duration
-              << '\n';
-        }
+        for (const auto& trace : traceVec) { f << trace.name << ',' << trace.duration.count() << '\n'; }
     }
     auto PrefixCSV(const std::string& fileName) -> void {
         std::ofstream f{ fileName + ".csv" };
@@ -100,22 +85,20 @@ namespace {
     }
     auto AppendCSV(const std::string& fileName, const Trace& trace) -> void {
         std::ofstream f{ fileName + ".csv", std::ios_base::app };
-        f << trace.name << ',' << trace.duration << '\n';
+        f << trace.name << ',' << trace.duration.count() << '\n';
     }
 
 }    // namespace
 
-Trace::Trace(const std::string& _name, uint64_t _timestamp, uint64_t _duration)
+Trace::Trace(const std::string& _name, Unit _timestamp, Unit _duration)
     : name{ _name }, category{ "function" }, type{ "X" }, timestamp{ _timestamp }, duration{ _duration }, processId{ GetProcessId() }, threadId{ GetThreadId() } {}
 
-Timer::Timer(const std::string& _id) : id(_id) {
-    begin = Clock::now();
-}
+Timer::Timer(const std::string& _id) : id(_id) { begin = Clock::now(); }
 Timer::~Timer() {
     end = Clock::now();
     assert(begin <= end);
-    const uint64_t timestamp = std::chrono::duration_cast<Unit>(begin - TimePoint::min()).count();
-    const uint64_t duration = std::chrono::duration_cast<Unit>(end - begin).count();
+    const Unit timestamp = std::chrono::duration_cast<Unit>(begin - TimePoint::min());
+    const Unit duration = std::chrono::duration_cast<Unit>(end - begin);
     Instrumenter::Get().AddTrace({ id, timestamp, duration });
 }
 
@@ -134,18 +117,10 @@ auto Instrumenter::BeginSession(const std::string& _fileName) -> void {
     fileName = _fileName;
     InvokeBeginSessionCallbacks(beginSessionCallbacks);
 }
-auto Instrumenter::EndSession() const -> void {
-    InvokeEndSessionCallbacks(endSessionCallbacks);
-}
-auto Instrumenter::InstallBeginSessionCallback(auto&& f) -> void {
-    beginSessionCallbacks.emplace_back(f);
-}
-auto Instrumenter::InstallEndSessionCallback(auto&& f) -> void {
-    endSessionCallbacks.emplace_back(f);
-}
-auto Instrumenter::InstallTraceCallback(auto&& f) -> void {
-    traceCallbacks.emplace_back(f);
-}
+auto Instrumenter::EndSession() const -> void { InvokeEndSessionCallbacks(endSessionCallbacks); }
+auto Instrumenter::InstallBeginSessionCallback(auto&& f) -> void { beginSessionCallbacks.emplace_back(f); }
+auto Instrumenter::InstallEndSessionCallback(auto&& f) -> void { endSessionCallbacks.emplace_back(f); }
+auto Instrumenter::InstallTraceCallback(auto&& f) -> void { traceCallbacks.emplace_back(f); }
 
 Instrumenter::Instrumenter() { InstallAllCallbacks(); }
 auto Instrumenter::InvokeBeginSessionCallbacks(const auto& cbVec) const -> void {

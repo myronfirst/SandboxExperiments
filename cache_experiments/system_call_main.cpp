@@ -41,11 +41,11 @@ constexpr uint64_t PERSISTENT_ARR_LEN = 2 * CACHE_SIZE;
 #define POOL_PATH_REL "pool_dir/pool"
 constexpr auto PoolPath = MOUNT_DIR POOL_PATH_REL;
 constexpr const char* PoolLayout = "pool";
-struct RootType {
-    pmem::obj::persistent_ptr<uint64_t[PERSISTENT_ARR_LEN]> arrayPersistent;
+struct Root {
+    pmem::obj::persistent_ptr<uint64_t[PERSISTENT_ARR_LEN]> array;
 };
-pmem::obj::pool<RootType> Pool{};
-pmem::obj::persistent_ptr<RootType> RootPtr{};
+pmem::obj::pool<Root> Pool{};
+pmem::obj::persistent_ptr<Root> RootPtr{};
 /* --- */
 
 /* ---Volatile--- */
@@ -78,24 +78,24 @@ namespace {
     [[maybe_unused]] auto ReadBench(size_t size) -> void {
         TIME_SCOPE("System_Call_Read");
         for (auto i = 0ul; i < size; ++i)
-            ReadDestination = RootPtr->arrayPersistent[i];
+            ReadDestination = RootPtr->array[i];
     }
     [[maybe_unused]] auto WriteBench(size_t size) -> void {
         TIME_SCOPE("System_Call_Write");
         for (auto i = 0ul; i < size; ++i)
-            RootPtr->arrayPersistent[i] = i;
-        RootPtr->arrayPersistent.persist();
+            RootPtr->array[i] = i;
+        RootPtr->array.persist();
     }
 }    // namespace
 
 auto main() -> int {
     try {
-        int isConsistent = pmem::obj::pool<RootType>::check(PoolPath, PoolLayout);
+        int isConsistent = pmem::obj::pool<Root>::check(PoolPath, PoolLayout);
         // std::cout << isConsistent << " errno: " << strerror(errno) << '\n';
         if (isConsistent > 0)
-            Pool = pmem::obj::pool<RootType>::open(PoolPath, PoolLayout);
+            Pool = pmem::obj::pool<Root>::open(PoolPath, PoolLayout);
         else if (isConsistent < 0)
-            Pool = pmem::obj::pool<RootType>::create(PoolPath, PoolLayout, POOL_SIZE);
+            Pool = pmem::obj::pool<Root>::create(PoolPath, PoolLayout, POOL_SIZE);
         else {
             std::cout << "IsConsistent: " << isConsistent << std::endl;
             assert(false);

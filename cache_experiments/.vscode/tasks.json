@@ -8,8 +8,8 @@
             "type": "bazel",
             "command": "build",
             "targets": [
-                "//:call_once",
                 "//:cache_warm",
+                "//:call_once",
             ],
             "options": [
                 // "--config=optimize",
@@ -26,6 +26,17 @@
             "type": "bazel",
             "command": "clean",
             "targets": []
+        },
+        {
+            "label": "Refresh Compile Commands",
+            "type": "bazel",
+            "command": "run",
+            "targets": [
+                "//:refresh_compile_commands"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ]
         }
     ]
 }

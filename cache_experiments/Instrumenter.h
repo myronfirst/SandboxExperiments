@@ -6,26 +6,27 @@
 #include <string>
 #include <vector>
 
+using Unit = std::chrono::milliseconds;
+
 struct Trace {
     std::string name{};
     std::string category{};
     std::string type{};
-    uint64_t timestamp{};
-    uint64_t duration{};
+    Unit timestamp{};
+    Unit duration{};
     uint64_t processId{};
     uint64_t threadId{};
-    Trace(const std::string& _name, uint64_t _timestamp, uint64_t _duration);
+    Trace(const std::string& _name, Unit _timestamp, Unit _duration);
 };
 
 class Timer {
 public:
     using Clock = std::chrono::steady_clock;
     using TimePoint = std::chrono::time_point<Clock>;
-    using Unit = std::chrono::milliseconds;
     Timer(const Timer&) = delete;
     Timer(Timer&) = delete;
-    Timer& operator=(const Timer&) = delete;
-    Timer& operator=(Timer&&) = delete;
+    auto operator=(const Timer&) = delete;
+    auto operator=(Timer&&) -> Timer& = delete;
 
 public:
     Timer(const std::string& _id);
@@ -46,8 +47,8 @@ public:
     ~Instrumenter() = default;
     Instrumenter(const Instrumenter&) = delete;
     Instrumenter(const Instrumenter&&) = delete;
-    Instrumenter& operator=(const Instrumenter&) = delete;
-    Instrumenter& operator=(Instrumenter&&) = delete;
+    auto operator=(const Instrumenter&) -> Instrumenter& = delete;
+    auto operator=(Instrumenter&&) -> Instrumenter& = delete;
 
 public:
     auto AddTrace(const Trace&) -> void;

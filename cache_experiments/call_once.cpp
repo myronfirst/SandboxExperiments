@@ -5,29 +5,30 @@
 #include <iostream>
 #include <limits>
 #include <mutex>
+#include <print>
 #include <string_view>
 #include <thread>
 #include <vector>
 
 namespace {
-#define CALL_POSIX(func, ...)                                         \
-    {                                                                 \
-        int r_ = func(__VA_ARGS__);                                   \
-        if (r_ != 0) {                                                \
-            std::cout << #func " error: " << strerror(errno) << '\n'; \
-            assert(false);                                            \
-            std::abort();                                             \
-        }                                                             \
-    }
-
     using Clock = std::chrono::steady_clock;
     using Timepoint = std::chrono::time_point<Clock>;
 
-    auto PinToCore(int core) -> void {
+    template<typename Func, typename... Args> constexpr void CallPosix(Func&& func, Args&&... args) {
+        const int err = std::forward<Func>(func)(std::forward<Args>(args)...);
+        if (err != 0) {
+            std::println(stdout, "CallPosix Error");
+            std::fflush(stdout);
+            std::abort();
+        }
+    }
+
+    auto PinThisThreadToCore(std::size_t core) -> void {
+        assert(core < std::jthread::hardware_concurrency());
         cpu_set_t cpu_mask;
         CPU_ZERO(&cpu_mask);
         CPU_SET(core, &cpu_mask);
-        CALL_POSIX(pthread_setaffinity_np, pthread_self(), sizeof(cpu_mask), &cpu_mask);
+        CallPosix(pthread_setaffinity_np, pthread_self(), sizeof(cpu_mask), &cpu_mask);
     }
 
     constexpr size_t TotalThreads = 8;
@@ -38,19 +39,14 @@ namespace {
     std::barrier beginBarrier{ TotalThreads };
     std::barrier endBarrier{ TotalThreads };
 
-    auto Workload([[maybe_unused]] size_t id) -> void {
-        for (uint32_t i = 0u; i < std::numeric_limits<uint32_t>::max(); ++i)
-            ;
-    }
+    auto Workload([[maybe_unused]] size_t id) -> void { for (uint32_t i = 0u; i < std::numeric_limits<uint32_t>::max(); ++i); }
     auto ExecuteOneWriter(size_t id) -> void {
         beginBarrier.arrive_and_wait();
-        if (id == 0)
-            begin = Clock::now();
+        if (id == 0) begin = Clock::now();
 
         Workload(id);
         beginBarrier.arrive_and_wait();
-        if (id == 0)
-            end = Clock::now();
+        if (id == 0) end = Clock::now();
     }
     auto ExecuteCallOnceWriter(size_t id) -> void {
         beginBarrier.arrive_and_wait();
@@ -74,7 +70,7 @@ namespace {
         end = Clock::now();
     }
     auto WrapCallback(size_t id, auto cb) -> void {
-        PinToCore(id);
+        PinThisThreadToCore(id);
         cb(id);
     }
 
@@ -92,7 +88,7 @@ namespace {
 
 }    // namespace
 auto main() -> int {
-    CALL_POSIX(pthread_setconcurrency, std::thread::hardware_concurrency());
+    CallPosix(pthread_setconcurrency, std::thread::hardware_concurrency());
     std::cout << "Number of Logical Threads: " << pthread_getconcurrency() << '\n';
     SpawnAndJoinThreads(ExecuteOneWriter, "ExecuteOneWriter");
     SpawnAndJoinThreads(ExecuteCallOnceWriter, "ExecuteCallOnceWriter");

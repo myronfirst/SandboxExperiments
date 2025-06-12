@@ -1,3 +1,4 @@
+startup --output_user_root="/tmp/bazel/_bazel_myrontsa"
 common --enable_bzlmod
 common --color="auto"
 common --repo_env="BAZEL_CXXOPTS=-std=c++23"

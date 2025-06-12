@@ -1,8 +1,26 @@
-COPTS = [
+load("@hedron_compile_commands//:refresh_compile_commands.bzl", "refresh_compile_commands")
+
+CXXOPTS = [
+    # "-Wno-interference-size",
     "-Wall",
     "-Wextra",
-    "-pedantic",
-    "-pedantic-errors",
+    "-Wshadow",
+    "-Wnon-virtual-dtor",
+    "-Wpedantic",
+    "-Wold-style-cast",
+    "-Wcast-align",
+    "-Wunused",
+    "-Woverloaded-virtual",
+    "-Wconversion",
+    "-Wsign-conversion",
+    "-Wmisleading-indentation",
+    "-Wduplicated-cond",
+    "-Wduplicated-branches",
+    "-Wlogical-op",
+    "-Wnull-dereference",
+    "-Wuseless-cast",
+    "-Wdouble-promotion",
+    "-Wformat=2",
 ]
 
 LINKOPTS = [
@@ -10,10 +28,20 @@ LINKOPTS = [
     "-pthread",
 ]
 
+refresh_compile_commands(
+    name = "refresh_compile_commands",
+    exclude_external_sources = True,
+    # exclude_headers = "external",
+    # exclude_headers = "all",
+    targets = {
+        "//:cache_warm": "--config=debug",
+    },
+)
+
 cc_binary(
     name = "cache_warm",
     srcs = ["cache_warm.cpp"],
-    copts = COPTS,
+    cxxopts = CXXOPTS,
     linkopts = LINKOPTS,
     deps = [
         ":Instrumenter",
@@ -24,7 +52,7 @@ cc_binary(
 cc_binary(
     name = "system_call_main",
     srcs = ["system_call_main.cpp"],
-    copts = COPTS,
+    cxxopts = CXXOPTS,
     linkopts = LINKOPTS,
     deps = [
         ":Instrumenter",
@@ -34,13 +62,12 @@ cc_binary(
 cc_binary(
     name = "call_once",
     srcs = ["call_once.cpp"],
-    copts = COPTS,
-    deps = [],
+    cxxopts = CXXOPTS,
 )
 
 cc_library(
     name = "Instrumenter",
     srcs = ["Instrumenter.cpp"],
     hdrs = ["Instrumenter.h"],
-    copts = COPTS,
+    cxxopts = CXXOPTS,
 )
