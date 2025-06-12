@@ -4,34 +4,28 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build_cache_warm_debug",
-            "type": "shell",
-            "command": "bazel build //:cache_warm --config=debug",
-            "problemMatcher": [],
+            "label": "Build All",
+            "type": "bazel",
+            "command": "build",
+            "targets": [
+                "//:call_once",
+                "//:cache_warm",
+            ],
+            "options": [
+                // "--config=optimize",
+                "--config=debug",
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "problemMatcher": "$gcc"
         },
         {
-            "label": "build_cache_warm_release",
-            "type": "shell",
-            "command": "bazel build //:cache_warm --config=release",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            }
-        },
-        {
-            "label": "build_call_once_debug",
-            "type": "shell",
-            "command": "bazel build //:call_once --config-debug",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            }
+            "label": "Clean",
+            "type": "bazel",
+            "command": "clean",
+            "targets": []
         }
     ]
 }

@@ -1,11 +1,10 @@
 common --enable_bzlmod
 common --color="auto"
 common --repo_env="BAZEL_CXXOPTS=-std=c++23"
-build --action_env="CC=/bin/g++-11"
+build --action_env="CC=/bin/g++-14"
 
-build:debug --compilation_mode="dbg"
-build:debug --copt="-O0" --copt="-D_GLIBCXX_DEBUG"
+build:debug --compilation_mode="dbg" --copt="-g3" --copt="-O0" --copt="-DDEBUG" --copt="-march=native"
 
-build:release --compilation_mode="opt"
-build:release --copt="-Ofast" --copt="-march=native" --copt="-mtune=native"
-build:release --linkopt="-flto"
+build:optimize --compilation_mode="opt"
+build:optimize --copt="-flto=auto" --copt="-ftree-vectorize" --copt="-Ofast" --copt="-march=native" --copt="-mtune=native"
+build:optimize --linkopt="-flto=auto"
